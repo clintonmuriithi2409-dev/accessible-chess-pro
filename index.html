@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accessible Chess Pro</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background-color: #161512;
+            color: #bababa;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .setup-panel {
+            background: #262421;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+            width: 100%;
+            max-width: 950px;
+        }
+        .controls-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .action-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 5px;
+        }
+        .scanner-panel, .editor-panel {
+            display: none;
+            width: 100%;
+            background: #1e1c18;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #363431;
+            box-sizing: border-box;
+            margin-top: 10px;
+        }
+        .editor-pieces-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 12px;
+        }
+        .editor-btn {
+            padding: 6px 12px;
+            background: #363431;
+            border: 1px solid #555;
+            color: #fff;
+            font-weight: bold;
+        }
+        .editor-btn.active-tool {
+            background: #fabd2f;
+            color: #1d2021;
+            border-color: #fff;
+        }
+        .link-row {
+            width: 100%;
+            text-align: center;
+            background: #1e1c18;
+            padding: 8px;
+            border-radius: 4px;
+            display: none;
+            color: #ff9f43;
+        }
+        select, button, input[type="file"] {
+            padding: 8px 12px;
+            background: #363431;
+            color: #fff;
+            border: 1px solid #403e3b;
+            border-radius: 4px;
+            font-size: 0.95em;
+            cursor: pointer;
+        }
+        button { background-color: #458588; font-weight: bold; border: none; }
+        button:hover { background-color: #509497; }
+        button.success { background-color: #b8bb26; color: #1d2021; }
+        button.success:hover { background-color: #fabd2f; }
+        button.danger { background-color: #b16286; }
+        button.danger:hover { background-color: #c37399; }
+        
+        .timer-display {
+            font-family: monospace;
+            font-size: 1.4em;
+            font-weight: bold;
+            background: #1e1c18;
+            padding: 4px 10px;
+            border-radius: 4px;
+            border: 1px solid #363431;
+            color: #fff;
+        }
+        .timer-display.active-clock {
+            color: #ff9f43;
+            border-color: #ff9f43;
+        }
+
+        .container { 
+            display: flex; 
+            gap: 20px; 
+            max-width: 950px; 
+            width: 100%; 
+            flex-wrap: wrap;
+        }
+        
+        #board-status {
+            background: #262421;
+            padding: 20px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            font-size: 1.3em;
+            letter-spacing: 3px;
+            border: 1px solid #363431;
+            line-height: 1.6;
+            color: #fff;
+        }
+        
+        .grid-board {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 2px;
+            max-width: 360px;
+            margin-top: 15px;
+        }
+        .square-btn {
+            aspect-ratio: 1;
+            border: none;
+            font-size: 1.1em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            font-weight: bold;
+        }
+        .square-btn.selected { background-color: #458588 !important; color: #fff !important; }
+
+        #move-sheet-container {
+            flex: 1;
+            min-width: 280px;
+            background: #262421;
+            border-radius: 4px;
+            height: 520px;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #363431;
+        }
+        .sheet-header {
+            background: #1e1c18;
+            padding: 10px;
+            font-weight: bold;
+            text-align: center;
+            border-bottom: 1px solid #363431;
+            color: #fff;
+            display: flex;
+            justify-content: space-around;
+        }
+        .table-scroll {
+            flex: 1;
+            overflow-y: auto;
+            padding: 5px;
+        }
+        .move-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .move-table tr:nth-child(even) { background: #1e1c18; }
+        .move-table td { padding: 6px 10px; color: #bababa; }
+        .move-table td.num-col { width: 15%; color: #666; text-align: center; font-weight: bold; }
+        .move-table td.move-col { width: 42.5%; }
+        .move-table .active-move { color: #fff; font-weight: bold; background: #363431; }
+        
+        .input-area { width: 100%; max-width: 360px; margin-top: 15px; }
+        .form-group { display: flex; gap: 10px; }
+        input[type="text"], input[type="password"] {
+            flex: 1;
+            padding: 10px;
+            background-color: #161512;
+            border: 1px solid #363431;
+            color: white;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+        .visually-hidden {
+            position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;
+        }
+
+        /* Enhanced Editor Layout Styles */
+        .editor-options-row {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #363431;
+            width: 100%;
+        }
+        .editor-text-input-container {
+            width: 100%;
+            max-width: 650px;
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            margin-bottom: 15px;
+        }
+        .editor-text-input-container label {
+            font-size: 0.9em;
+            color: #fabd2f;
+        }
+        .input-error {
+            border-color: #b16286 !important;
+            box-shadow: 0 0 5px rgba(177, 98, 134, 0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="setup-panel">
+        <div class="controls-row">
+            <div>
+                <label for="game-mode">Opponent: </label>
+                <select id="game-mode" onchange="handleGameModeChange()">
+                    <option value="ai">Stockfish Bot AI</option>
+                    <option value="local">Local Player</option>
+                    <option value="online">Online Player (Firebase)</option>
+                </select>
+            </div>
+            <div>
+                <label for="player-color">Play As: </label>
+                <select id="player-color" onchange="prepareBoardAndClocks()">
+                    <option value="both">Both (Pass & Play)</option>
+                    <option value="w" selected>White</option>
+                    <option value="b">Black</option>
+                </select>
+            </div>
+            <div>
+                <label for="time-limit">Clock: </label>
+                <select id="time-limit" onchange="prepareBoardAndClocks()">
+                    <option value="0">No Timer</option>
+                    <option value="20">20 Minutes</option>
+                    <option value="50">50 Minutes</option>
+                    <option value="90">90 Minutes</option>
+                </select>
+            </div>
+            <div id="difficulty-wrapper">
+                <label for="ai-level">Bot Level: </label>
+                <select id="ai-level">
+                    <option value="1">1 (Elo 800)</option>
+                    <option value="3" selected>3 (Elo 1200)</option>
+                    <option value="5">5 (Elo 1700)</option>
+                    <option value="8">8 (Elo 2500+)</option>
+                </select>
+            </div>
+            <button class="success" onclick="startGame()">Start Game</button>
+            <button onclick="prepareBoardAndClocks()">Reset</button>
+            <button onclick="toggleScanner()">Scan Screenshot</button>
+            <button onclick="toggleEditor()">Toggle Board Editor</button>
+        </div>
+
+        <!-- Board Editor Section -->
+        <div id="editor-section" class="editor-panel">
+            <div class="editor-options-row">
+                <div>
+                    <label for="editor-edit-mode">Input Method: </label>
+                    <select id="editor-edit-mode" onchange="handleEditorInputModeChange()">
+                        <option value="visual" selected>Visual Click Placement</option>
+                        <option value="fen">FEN String Input</option>
+                        <option value="custom">Custom Notation Field</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="editor-turn">Side to Move: </label>
+                    <select id="editor-turn" onchange="syncEditorTextFromBoard()">
+                        <option value="w" selected>White</option>
+                        <option value="b">Black</option>
+                    </select>
+                </div>
+                <button class="success" onclick="saveAndExitEditor()">Save & Exit Editor</button>
+                <button class="danger" onclick="clearEntireBoard()">Clear Entire Board</button>
+            </div>
+
+            <!-- Dynamic Text Input Boxes -->
+            <div id="editor-text-container" class="editor-text-input-container">
+                <label id="editor-string-label" for="editor-string-input">String Input:</label>
+                <input type="text" id="editor-string-input" oninput="handleEditorTextInput(this.value)" placeholder="" autocomplete="off">
+            </div>
+
+            <!-- Visual Pieces Pallete Selection Row -->
+            <div id="editor-palette" class="editor-pieces-row">
+                <button class="editor-btn active-tool" id="tool-p" onclick="selectEditorTool('p', 'w')">white pawn</button>
+                <button class="editor-btn" id="tool-n" onclick="selectEditorTool('n', 'w')">white knight</button>
+                <button class="editor-btn" id="tool-b" onclick="selectEditorTool('b', 'w')">white bishop</button>
+                <button class="editor-btn" id="tool-r" onclick="selectEditorTool('r', 'w')">white rook</button>
+                <button class="editor-btn" id="tool-q" onclick="selectEditorTool('q', 'w')">white queen</button>
+                <button class="editor-btn" id="tool-k" onclick="selectEditorTool('k', 'w')">white king</button>
+                <button class="editor-btn" id="tool-P" onclick="selectEditorTool('p', 'b')">BLACK PAWN</button>
+                <button class="editor-btn" id="tool-N" onclick="selectEditorTool('n', 'b')">BLACK KNIGHT</button>
+                <button class="editor-btn" id="tool-B" onclick="selectEditorTool('b', 'b')">BLACK BISHOP</button>
+                <button class="editor-btn" id="tool-R" onclick="selectEditorTool('r', 'b')">BLACK ROOK</button>
+                <button class="editor-btn" id="tool-Q" onclick="selectEditorTool('q', 'b')">BLACK QUEEN</button>
+                <button class="editor-btn" id="tool-K" onclick="selectEditorTool('k', 'b')">BLACK KING</button>
+                <button class="editor-btn" id="tool-empty" onclick="selectEditorTool('empty', '')">Empty Square (Eraser)</button>
+            </div>
+        </div>
+
+        <div id="scanner-section" class="scanner-panel">
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <input type="password" id="gemini-key" placeholder="Paste free Gemini API Key here...">
+                <input type="file" id="screenshot-file" accept="image/*">
+                <button onclick="processScreenshot()">Load Board State</button>
+            </div>
+        </div>
+
+        <div id="link-sharing-panel" class="link-row">
+            <span id="game-link-text"></span>
+        </div>
+
+        <div class="action-row">
+            <button class="danger" onclick="triggerResign()">Resign</button>
+            <button onclick="triggerDraw()">Offer Draw</button>
+            <button onclick="triggerTakeback()">Take Back</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <main style="flex: 1.2; min-width: 320px;">
+            <div id="board-status" aria-label="Chessboard layout text alignment panel"></div>
+            <div id="accessible-grid" class="grid-board" aria-label="Interactive Board Grid"></div>
+
+            <form id="move-form" class="input-area" onsubmit="handleTextMove(event)">
+                <label for="move-input" class="visually-hidden">Type Move:</label>
+                <div class="form-group">
+                    <input type="text" id="move-input" placeholder="Type move (e.g. e4, Nf3)" autocomplete="off">
+                    <button type="submit">Move</button>
+                </div>
+            </form>
+        </main>
+
+        <section id="move-sheet-container" aria-label="Move List Panel">
+            <div class="sheet-header">
+                <div>White Clock: <span id="clock-w" class="timer-display">--:--</span></div>
+                <div>Black Clock: <span id="clock-b" class="timer-display">--:--</span></div>
+            </div>
+            <div class="table-scroll">
+                <table class="move-table">
+                    <tbody id="move-history-body"></tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const firebaseConfig = { databaseURL: "https://accessible-chess-default-rtdb.firebaseio.com" };
+        
+        let dbRef = null;
+        let gameId = null;
+        let isOnlineGame = false;
+        let ignoreNextDbUpdate = false;
+        let gameActive = false;
+        let isEditorMode = false;
+
+        let game = new Chess();
+        let selectedSquare = null;
+
+        // Board Editor Setup state (default: white pawn tool)
+        let activeEditorType = 'p'; 
+        let activeEditorColor = 'w';
+
+        let timers = { w: 0, b: 0 };
+        let timerInterval = null;
+
+        let audioCtx = null;
+        function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+
+        function playSound(type) {
+            initAudio(); if (!audioCtx) return;
+            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
+
+            if (type === 'move') {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(320, now);
+                osc.frequency.exponentialRampToValueAtTime(150, now + 0.05);
+                gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                osc.start(now); osc.stop(now + 0.05);
+            } else if (type === 'capture') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(450, now); osc.frequency.setValueAtTime(200, now + 0.03);
+                gain.gain.setValueAtTime(0.4, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                osc.start(now); osc.stop(now + 0.08);
+            } else if (type === 'join') {
+                osc.type = 'sine'; gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                osc.frequency.setValueAtTime(261.63, now); osc.frequency.setValueAtTime(329.63, now + 0.1); osc.frequency.setValueAtTime(392.00, now + 0.2);
+                osc.start(now); osc.stop(now + 0.4);
+            } else if (type === 'gameover') {
+                osc.type = 'triangle'; gain.gain.setValueAtTime(0.25, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                osc.frequency.setValueAtTime(220.00, now); osc.frequency.setValueAtTime(196.00, now + 0.15); osc.frequency.setValueAtTime(164.81, now + 0.3);
+                osc.start(now); osc.stop(now + 0.5);
+            }
+        }
+
+        function speakMove(moveObj) {
+            if (!window.speechSynthesis) return;
+            const pieceNames = { 'p': 'Pawn', 'n': 'Knight', 'b': 'Bishop', 'r': 'Rook', 'q': 'Queen', 'k': 'King' };
+            const piece = pieceNames[moveObj.piece.toLowerCase()] || 'Pawn';
+            const color = moveObj.color === 'w' ? 'White' : 'Black';
+            let announcement = "";
+
+            if (moveObj.san === 'O-O') {
+                announcement = `${color} castles kingside`;
+            } else if (moveObj.san === 'O-O-O') {
+                announcement = `${color} castles queenside`;
+            } else {
+                if (moveObj.flags.includes('c') || moveObj.flags.includes('e')) {
+                    announcement = `${color} ${piece} captures on ${moveObj.to}`;
+                } else {
+                    announcement = `${color} plays ${piece} to ${moveObj.to}`;
+                }
+            }
+
+            if (game.in_checkmate()) announcement += ". Checkmate! Game over.";
+            else if (game.in_check()) announcement += ". Check.";
+
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(announcement);
+            utterance.lang = 'en-US';
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function speakText(text) {
+            if (!window.speechSynthesis) return;
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            window.speechSynthesis.speak(utterance);
+        }
+
+        const boardStatus = document.getElementById('board-status');
+        const accessibleGrid = document.getElementById('accessible-grid');
+        const moveHistoryBody = document.getElementById('move-history-body');
+        const moveInput = document.getElementById('move-input');
+        const aiLevelSelect = document.getElementById('ai-level');
+        const gameModeSelect = document.getElementById('game-mode');
+        const playerColorSelect = document.getElementById('player-color');
+        const timeLimitSelect = document.getElementById('time-limit');
+        const diffWrapper = document.getElementById('difficulty-wrapper');
+        const linkPanel = document.getElementById('link-sharing-panel');
+        const linkText = document.getElementById('game-link-text');
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlGameId = urlParams.get('gameid');
+
+        if (firebase.apps.length === 0) firebase.initializeApp(firebaseConfig);
+
+        if (urlGameId) {
+            gameModeSelect.value = 'online';
+            setupOnlineGame(urlGameId);
+        } else {
+            prepareBoardAndClocks();
+        }
+
+        function handleGameModeChange() {
+            if (gameModeSelect.value === 'online') {
+                setupOnlineGame(null);
+            } else {
+                diffWrapper.style.display = gameModeSelect.value === 'ai' ? 'block' : 'none';
+                linkPanel.style.display = 'none';
+                isOnlineGame = false;
+                if(dbRef) dbRef.off();
+                prepareBoardAndClocks();
+            }
+        }
+
+        function setupOnlineGame(existingId) {
+            diffWrapper.style.display = 'none';
+            linkPanel.style.display = 'block';
+            isOnlineGame = true;
+
+            if (existingId) {
+                gameId = existingId;
+                playerColorSelect.value = 'b';
+                linkText.textContent = "Connected online. Playing as Black. Press 'Start Game' to activate.";
+                speakText("Connected online. Playing as Black.");
+                playSound('join');
+            } else {
+                gameId = Math.random().toString(36).substring(2, 9);
+                playerColorSelect.value = 'w';
+                const shareUrl = window.location.origin + window.location.pathname + '?gameid=' + gameId;
+                linkText.textContent = "Match Invite URL: " + shareUrl;
+            }
+
+            dbRef = firebase.database().ref('games/' + gameId);
+
+            if (!existingId) {
+                dbRef.set({ fen: game.fen(), history: [], joined: false, timeLimit: timeLimitSelect.value });
+            }
+
+            dbRef.on('value', (snapshot) => {
+                if (ignoreNextDbUpdate) { ignoreNextDbUpdate = false; return; }
+                const data = snapshot.val();
+                if (data) {
+                    if (data.timeLimit) timeLimitSelect.value = data.timeLimit;
+                    const oldLen = game.history().length;
+                    game.load(data.fen);
+                    
+                    if (game.history().length > oldLen) {
+                        const historyVerbose = game.history({verbose: true});
+                        const lastMove = historyVerbose.pop();
+                        playSound(lastMove && (lastMove.flags.includes('c') || lastMove.flags.includes('e')) ? 'capture' : 'move');
+                        if (lastMove) speakMove(lastMove);
+                    }
+                    renderBoard();
+                    updateMoveSheet();
+                    if (gameActive) manageClockExecution();
+                }
+            });
+        }
+
+        function toggleScanner() {
+            const scanner = document.getElementById('scanner-section');
+            scanner.style.display = scanner.style.display === 'block' ? 'none' : 'block';
+        }
+
+        // Toggle Board Editor Panel
+        function toggleEditor() {
+            const editorPanel = document.getElementById('editor-section');
+            if (editorPanel.style.display === 'block') {
+                saveAndExitEditor();
+            } else {
+                isEditorMode = true;
+                gameActive = false;
+                clearInterval(timerInterval);
+                editorPanel.style.display = 'block';
+                
+                // Initialize side to move select to match current position turn
+                document.getElementById('editor-turn').value = game.turn();
+                
+                // Trigger view default update configuration
+                handleEditorInputModeChange();
+                speakText("Board editor open. Choose your preferred input method from the dropdown menu.");
+                renderBoard();
+            }
+        }
+
+        // Handles switching between Visual, FEN, and Custom string inputs
+        function handleEditorInputModeChange() {
+            const mode = document.getElementById('editor-edit-mode').value;
+            const textContainer = document.getElementById('editor-text-container');
+            const palette = document.getElementById('editor-palette');
+            const stringLabel = document.getElementById('editor-string-label');
+            const stringInput = document.getElementById('editor-string-input');
+
+            stringInput.classList.remove('input-error');
+
+            if (mode === 'visual') {
+                textContainer.style.display = 'none';
+                palette.style.display = 'flex';
+                speakText("Visual click placement active. Select pieces below then click board tiles.");
+            } else {
+                palette.style.display = 'none';
+                textContainer.style.display = 'flex';
+                
+                if (mode === 'fen') {
+                    stringLabel.textContent = "Standard FEN String Input:";
+                    stringInput.placeholder = "e.g. rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+                    speakText("FEN string entry active.");
+                } else if (mode === 'custom') {
+                    stringLabel.textContent = "Custom Notation Layout String (64 chars, . for empty, white lowercase, black uppercase):";
+                    stringInput.placeholder = "rnbqkbnrpppppppp................................PPPPPPPPRNBQKBNR";
+                    speakText("Custom notation string entry active.");
+                }
+                syncEditorTextFromBoard();
+            }
+        }
+
+        // Serializes board matrix state out to string textboxes
+        function syncEditorTextFromBoard() {
+            const mode = document.getElementById('editor-edit-mode').value;
+            const stringInput = document.getElementById('editor-string-input');
+            if (mode === 'visual') return;
+
+            if (mode === 'fen') {
+                // Ensure the side-to-move selector tokens match fen construction arrays accurately
+                let currentFen = game.fen();
+                let tokens = currentFen.split(' ');
+                tokens[1] = document.getElementById('editor-turn').value;
+                let adjustedFen = tokens.join(' ');
+                
+                // If legal, assign back into engine state to maintain alignment properties
+                if(game.validate_fen(adjustedFen).valid) {
+                    game.load(adjustedFen);
+                }
+                stringInput.value = game.fen();
+            } else if (mode === 'custom') {
+                let customStr = "";
+                const rawBoard = game.board();
+                for (let r = 0; r < 8; r++) {
+                    for (let f = 0; f < 8; f++) {
+                        const pieceObj = rawBoard[r][f];
+                        if (!pieceObj) {
+                            customStr += ".";
+                        } else {
+                            customStr += pieceObj.color === 'w' ? pieceObj.type : pieceObj.type.toUpperCase();
+                        }
+                    }
+                }
+                stringInput.value = customStr;
+            }
+        }
+
+        // Processes real-time string typing changes securely
+        function handleEditorTextInput(val) {
+            const mode = document.getElementById('editor-edit-mode').value;
+            const stringInput = document.getElementById('editor-string-input');
+            
+            if (mode === 'fen') {
+                let check = game.validate_fen(val.trim());
+                if (check.valid) {
+                    stringInput.classList.remove('input-error');
+                    game.load(val.trim());
+                    document.getElementById('editor-turn').value = game.turn();
+                    renderBoard();
+                } else {
+                    stringInput.classList.add('input-error');
+                }
+            } else if (mode === 'custom') {
+                let cleanVal = val.replace(/\s/g, '');
+                if (cleanVal.length === 64 && /^[prnbqkPRNBQK.]+$/.test(cleanVal)) {
+                    stringInput.classList.remove('input-error');
+                    
+                    // Rebuild a transient working fen out from your custom 64-character map sequence
+                    let fenRows = [];
+                    for (let r = 0; r < 8; r++) {
+                        let rowStr = cleanVal.substring(r * 8, (r * 8) + 8);
+                        let fenRow = "";
+                        let emptyCount = 0;
+                        
+                        for (let c = 0; c < 8; c++) {
+                            let char = rowStr[c];
+                            if (char === '.') {
+                                emptyCount++;
+                            } else {
+                                if (emptyCount > 0) { fenRow += emptyCount; emptyCount = 0; }
+                                // Convert uppercase back into native black flags for classic fen engines
+                                let isBlack = (char === char.toUpperCase());
+                                fenRow += isBlack ? char.toLowerCase() : char.toUpperCase();
+                            }
+                        }
+                        if (emptyCount > 0) fenRow += emptyCount;
+                        fenRows.push(fenRow);
+                    }
+                    
+                    let turn = document.getElementById('editor-turn').value;
+                    let syntheticFen = fenRows.join('/') + ` ${turn} KQkq - 0 1`;
+                    
+                    if (game.validate_fen(syntheticFen).valid) {
+                        game.load(syntheticFen);
+                        renderBoard();
+                    } else {
+                        stringInput.classList.add('input-error');
+                    }
+                } else {
+                    stringInput.classList.add('input-error');
+                }
+            }
+        }
+
+        function selectEditorTool(type, color) {
+            activeEditorType = type;
+            activeEditorColor = color;
+            
+            // Manage focus styles
+            document.querySelectorAll('.editor-btn').forEach(btn => btn.classList.remove('active-tool'));
+            if (type === 'empty') {
+                document.getElementById('tool-empty').classList.add('active-tool');
+                speakText("Eraser tool selected.");
+            } else {
+                const elementId = 'tool-' + (color === 'w' ? type : type.toUpperCase());
+                document.getElementById(elementId).classList.add('active-tool');
+                const pieceNames = { 'p': 'Pawn', 'n': 'Knight', 'b': 'Bishop', 'r': 'Rook', 'q': 'Queen', 'k': 'King' };
+                speakText(`${color === 'w' ? 'White' : 'Black'} ${pieceNames[type]} selected.`);
+            }
+        }
+
+        function clearEntireBoard() {
+            game.clear();
+            speakText("Entire board cleared.");
+            syncEditorTextFromBoard();
+            renderBoard();
+        }
+
+        function saveAndExitEditor() {
+            const turn = document.getElementById('editor-turn').value;
+            
+            // Build temporary fen adjustments for turn assignment
+            let tokens = game.fen().split(' ');
+            tokens[1] = turn; 
+            tokens[2] = 'KQkq'; // Reset baseline castling rights for absolute safety
+            tokens[3] = '-';    // Clear en passant layout arrays
+            
+            let finalFen = tokens.join(' ');
+            
+            if (game.validate_fen(finalFen).valid) {
+                game.load(finalFen);
+                isEditorMode = false;
+                document.getElementById('editor-section').style.display = 'none';
+                speakText(`Board layout saved. Ready to play. ${turn === 'w' ? 'White' : 'Black'} to move.`);
+                renderBoard();
+                if (isOnlineGame) dbRef.update({ fen: game.fen(), history: [] });
+            } else {
+                speakText("Invalid configuration array. Ensure both kings exist on the board grid safely.");
+                alert("The built positioning is illegal in classic chess setup. Add both kings.");
+            }
+        }
+
+        async function processScreenshot() {
+            const apiKey = document.getElementById('gemini-key').value.trim();
+            const fileInput = document.getElementById('screenshot-file');
+            if (!apiKey || !fileInput.files[0]) {
+                alert("Please add both your API key and a screenshot file.");
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            reader.onloadend = async () => {
+                const base64Data = reader.result.split(',')[1];
+                try {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            contents: [{
+                                parts: [
+                                    { text: "Output ONLY the valid Forsyth-Edwards Notation (FEN) string corresponding to this chessboard configuration. No prose." },
+                                    { inlineData: { mimeType: file.type, data: base64Data } }
+                                ]
+                            }]
+                        })
+                    });
+                    const resData = await response.json();
+                    let extractedFen = resData.candidates[0].content.parts[0].text.trim();
+                    
+                    if (game.validate_fen(extractedFen).valid) {
+                        game.load(extractedFen);
+                        renderBoard();
+                        updateMoveSheet();
+                        speakText("Board state loaded from screenshot. You can toggle the board editor to make fine corrections.");
+                        if (isOnlineGame) dbRef.update({ fen: game.fen(), history: game.history() });
+                        toggleScanner();
+                    } else {
+                        alert("Could not cleanly build legal layout array from text: " + extractedFen);
+                    }
+                } catch (e) {
+                    alert("Error scanning image via API configuration setup.");
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function resetClocks() {
+            clearInterval(timerInterval);
+            const mins = parseInt(timeLimitSelect.value);
+            if (mins > 0) {
+                timers.w = mins * 60; timers.b = mins * 60;
+                updateClockDisplay();
+            } else {
+                document.getElementById('clock-w').textContent = '--:--';
+                document.getElementById('clock-b').textContent = '--:--';
+            }
+        }
+
+        function manageClockExecution() {
+            clearInterval(timerInterval);
+            if (parseInt(timeLimitSelect.value) === 0 || game.game_over()) return;
+
+            document.getElementById('clock-w').className = 'timer-display ' + (game.turn() === 'w' ? 'active-clock' : '');
+            document.getElementById('clock-b').className = 'timer-display ' + (game.turn() === 'b' ? 'active-clock' : '');
+
+            timerInterval = setInterval(() => {
+                const activeTurn = game.turn();
+                timers[activeTurn]--;
+                updateClockDisplay();
+
+                if (timers[activeTurn] <= 0) {
+                    clearInterval(timerInterval);
+                    playSound('gameover');
+                    speakText("Time out. Game over.");
+                    alert(`Time out! ${activeTurn === 'w' ? 'Black' : 'White'} wins.`);
+                }
+            }, 1000);
+        }
+
+        function updateClockDisplay() {
+            ['w', 'b'].forEach(side => {
+                const m = Math.floor(timers[side] / 60).toString().padStart(2, '0');
+                const s = (timers[side] % 60).toString().padStart(2, '0');
+                document.getElementById(`clock-${side}`).textContent = `${m}:${s}`;
+            });
+        }
+
+        function renderBoard() {
+            const rawBoard = game.board();
+            let displayString = "  a b c d e f g h\n";
+            accessibleGrid.innerHTML = '';
+
+            for (let r = 0; r < 8; r++) {
+                let rowLabel = (8 - r); displayString += rowLabel + " ";
+                for (let f = 0; f < 8; f++) {
+                    const pieceObj = rawBoard[r][f];
+                    let char = '.';
+                    if (pieceObj) {
+                        // User Preference mapping: UpperCase = Black, LowerCase = White
+                        char = pieceObj.color === 'w' ? pieceObj.type : pieceObj.type.toUpperCase();
+                    }
+                    displayString += char + " ";
+
+                    const square = `${['a','b','c','d','e','f','g','h'][f]}${rowLabel}`;
+                    const btn = document.createElement('button');
+                    btn.className = 'square-btn';
+                    
+                    const pieceNames = { 'p': 'Pawn', 'n': 'Knight', 'b': 'Bishop', 'r': 'Rook', 'q': 'Queen', 'k': 'King' };
+                    let spokenPiece = pieceObj ? (pieceObj.color === 'w' ? 'White':'Black') + ' ' + pieceNames[pieceObj.type] : 'Empty';
+                    btn.setAttribute('aria-label', `${square}: ${spokenPiece}`);
+                    btn.textContent = char;
+                    
+                    if(selectedSquare === square) btn.classList.add('selected');
+                    btn.style.backgroundColor = (r + f) % 2 === 1 ? "#b58863" : "#f0d9b5";
+                    btn.style.color = (r + f) % 2 === 1 ? "#fff" : "#312e2b";
+
+                    btn.onclick = () => { initAudio(); handleSquareClick(square); };
+                    accessibleGrid.appendChild(btn);
+                }
+                displayString += rowLabel + "\n";
+            }
+            boardStatus.textContent = displayString + "  a b c d e f g h";
+        }
+
+        function updateMoveSheet() {
+            moveHistoryBody.innerHTML = ''; const history = game.history();
+            for (let i = 0; i < history.length; i += 2) {
+                const tr = document.createElement('tr');
+                const tdNum = document.createElement('td'); tdNum.className = 'num-col'; tdNum.textContent = (Math.floor(i / 2) + 1) + '.'; tr.appendChild(tdNum);
+                
+                const tdW = document.createElement('td'); tdW.className = 'move-col'; if(i===history.length-1) tdW.classList.add('active-move'); tdW.textContent = history[i]; tr.appendChild(tdW);
+                const tdB = document.createElement('td'); tdB.className = 'move-col'; if(i+1===history.length-1) tdB.classList.add('active-move'); tdB.textContent = history[i+1] || ''; tr.appendChild(tdW); tr.appendChild(tdB);
+                moveHistoryBody.appendChild(tr);
+            }
+            const s = document.querySelector('.table-scroll'); s.scrollTop = s.scrollHeight;
+        }
+
+        function handleTextMove(event) {
+            event.preventDefault(); initAudio();
+            if (!gameActive || isEditorMode) return;
+            if (isOnlineGame && game.turn() !== playerColorSelect.value) { moveInput.value = ''; return; }
+
+            let rawVal = moveInput.value.trim();
+            moveInput.value = '';
+            if (!rawVal) return;
+
+            let notation = rawVal;
+            if (/^[A-H][1-8]/i.test(rawVal)) {
+                notation = rawVal.toLowerCase();
+            } else if (/^[NBRQK]/i.test(rawVal)) {
+                if (!/^[A-H]x[A-H][1-8]/i.test(rawVal)) {
+                    notation = rawVal.charAt(0).toUpperCase() + rawVal.slice(1);
+                }
+            } else if (rawVal.toLowerCase() === 'o-o') notation = 'O-O';
+            else if (rawVal.toLowerCase() === 'o-o-o') notation = 'O-O-O';
+
+            const move = game.move(notation);
+            if (move) processMoveSuccess(move);
+        }
+
+        function handleSquareClick(square) {
+            // IF IN BOARD EDITOR MODE
+            if (isEditorMode) {
+                const pieceNames = { 'p': 'Pawn', 'n': 'Knight', 'b': 'Bishop', 'r': 'Rook', 'q': 'Queen', 'k': 'King' };
+                if (activeEditorType === 'empty') {
+                    game.remove(square);
+                    speakText(`Cleared ${square}`);
+                } else {
+                    game.put({ type: activeEditorType, color: activeEditorColor }, square);
+                    speakText(`Placed ${activeEditorColor === 'w' ? 'White' : 'Black'} ${pieceNames[activeEditorType]} on ${square}`);
+                }
+                syncEditorTextFromBoard();
+                renderBoard();
+                return;
+            }
+
+            // REGULAR GAMEPLAY CLICK HANDLING
+            if (!gameActive || game.game_over()) return;
+            if (isOnlineGame && game.turn() !== playerColorSelect.value) return;
+
+            if (selectedSquare === null) {
+                const piece = game.get(square);
+                if (piece && (playerColorSelect.value === 'both' || piece.color === playerColorSelect.value) && piece.color === game.turn()) {
+                    selectedSquare = square; renderBoard();
+                }
+            } else {
+                const move = game.move({ from: selectedSquare, to: square, promotion: 'q' });
+                selectedSquare = null;
+                if (move) processMoveSuccess(move); else renderBoard();
+            }
+        }
+
+        function processMoveSuccess(move) {
+            playSound(move.flags.includes('c') || move.flags.includes('e') ? 'capture' : 'move');
+            speakMove(move);
+            renderBoard(); updateMoveSheet(); manageClockExecution();
+
+            if (isOnlineGame) {
+                ignoreNextDbUpdate = true;
+                dbRef.update({ fen: game.fen(), history: game.history() });
+            }
+
+            if (game.game_over()) { playSound('gameover'); return; }
+
+            if (gameModeSelect.value === 'ai') {
+                if ((playerColorSelect.value === 'b' && game.turn() === 'w') || 
+                    (playerColorSelect.value === 'w' && game.turn() === 'b') ||
+                    (playerColorSelect.value === 'both' && game.turn() === 'b')) {
+                    fetchStockfishMove();
+                }
+            }
+        }
+
+        function fetchStockfishMove() {
+            let apiDepth = parseInt(aiLevelSelect.value) * 2;
+            if (aiLevelSelect.value === "8") apiDepth = 15; 
+
+            fetch(`https://stockfish.online/api/s/v2.php?fen=${encodeURIComponent(game.fen())}&depth=${apiDepth}`)
+                .then(res => res.json()).then(data => {
+                    if (data && data.success && data.bestmove) {
+                        const parts = data.bestmove.split(' ');
+                        const m = parts[1];
+                        if (m && m.length >= 4) {
+                            const move = game.move({ from: m.substring(0,2), to: m.substring(2,4), promotion: m.length > 4 ? m[4] : undefined });
+                            if (move) {
+                                playSound(move.flags.includes('c') || move.flags.includes('e') ? 'capture' : 'move');
+                                speakMove(move);
+                                renderBoard(); updateMoveSheet(); manageClockExecution();
+                                if (game.game_over()) { playSound('gameover'); }
+                            }
+                        }
+                    }
+                })
+                .catch(err => console.error("Error fetching engine move:", err));
+        }
+
+        function triggerResign() { playSound('gameover'); speakText("Game ended via resignation."); alert("Game ended via resignation."); prepareBoardAndClocks(); }
+        function triggerDraw() { playSound('gameover'); speakText("Game drawn."); alert("The match has concluded in a draw proposal agreement."); prepareBoardAndClocks(); }
+        function triggerTakeback() {
+            if (!gameActive) return;
+            game.undo(); if(gameModeSelect.value === 'ai') game.undo(); 
+            if (isOnlineGame) dbRef.update({ fen: game.fen(), history: game.history() });
+            renderBoard(); updateMoveSheet(); manageClockExecution();
+            speakText("Move taken back.");
+        }
+
+        function prepareBoardAndClocks() {
+            clearInterval(timerInterval);
+            game = new Chess();
+            selectedSquare = null;
+            gameActive = false;
+            isEditorMode = false;
+            resetClocks();
+            renderBoard();
+            updateMoveSheet();
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        function startGame() {
+            if (isEditorMode) {
+                speakText("Please exit the board editor before starting the match.");
+                return;
+            }
+            initAudio();
+            gameActive = true;
+            manageClockExecution();
+            speakText("Game started.");
+
+            if (gameModeSelect.value === 'online') {
+                setupOnlineGame(urlGameId || null);
+            } else if (gameModeSelect.value === 'ai' && game.turn() === (playerColorSelect.value === 'b' ? 'w' : 'b')) {
+                // If bot is supposed to move first based on custom layout turn
+                fetchStockfishMove();
+            } else if (gameModeSelect.value === 'ai' && playerColorSelect.value === 'b' && game.turn() === 'w') {
+                fetchStockfishMove();
+            }
+        }
+    </script>
+</body>
+</html>
