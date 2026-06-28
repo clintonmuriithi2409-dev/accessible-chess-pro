@@ -7,210 +7,421 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
+        :root {
+            --bg-main: #121214;
+            --bg-panel: #1a191d;
+            --bg-accent: #26242b;
+            --border-color: #32303b;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --primary: #10b981;
+            --primary-hover: #059669;
+            --danger: #ef4444;
+            --danger-hover: #dc2626;
+            --accent-gold: #f59e0b;
+            --square-light: #ececd7;
+            --square-dark: #739552;
+            --square-select: #ffeb3b;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-            background-color: #161512;
-            color: #bababa;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
             margin: 0;
-            padding: 20px;
+            padding: 12px;
             display: flex;
             flex-direction: column;
             align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
         }
-        .setup-panel {
-            background: #262421;
-            padding: 15px;
-            border-radius: 4px;
-            margin-bottom: 20px;
+
+        @media (min-width: 768px) {
+            body {
+                padding: 24px;
+            }
+        }
+
+        h3 {
+            margin-top: 0;
+            font-weight: 600;
+            letter-spacing: -0.025em;
+            color: var(--text-main);
+        }
+
+        .auth-gate-wrapper {
             display: flex;
-            flex-direction: column;
-            gap: 12px;
+            justify-content: center;
             align-items: center;
             width: 100%;
-            max-width: 950px;
+            min-height: 70vh;
+            box-sizing: border-box;
         }
+
+        .auth-panel, .lobby-panel, .setup-panel {
+            background: var(--bg-panel);
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            align-items: center;
+            width: 100%;
+            max-width: 1000px;
+            box-sizing: border-box;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+
+        .auth-panel {
+            max-width: 420px;
+            text-align: center;
+        }
+
+        @media (min-width: 768px) {
+            .auth-panel, .lobby-panel, .setup-panel {
+                padding: 20px;
+                margin-bottom: 24px;
+            }
+        }
+
+        .lobby-panel { display: none; align-items: flex-start; }
+        
+        .player-list { width: 100%; list-style: none; padding: 0; margin: 0; }
+        .player-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-accent);
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
         .controls-row {
             display: flex;
-            gap: 15px;
+            gap: 12px;
             align-items: center;
             flex-wrap: wrap;
             justify-content: center;
+            width: 100%;
         }
+
+        .controls-row > div {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1 1 140px;
+        }
+
+        .controls-row label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
         .action-row {
             display: flex;
-            gap: 10px;
-            margin-top: 5px;
+            gap: 12px;
+            margin-top: 8px;
+            width: 100%;
+            justify-content: center;
+            flex-wrap: wrap;
         }
+
         .scanner-panel, .editor-panel {
             display: none;
             width: 100%;
-            background: #1e1c18;
-            padding: 15px;
-            border-radius: 4px;
-            border: 1px solid #363431;
+            background: var(--bg-accent);
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
             box-sizing: border-box;
-            margin-top: 10px;
+            margin-top: 12px;
         }
+
         .editor-pieces-row {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             flex-wrap: wrap;
             justify-content: center;
-            margin-bottom: 12px;
+            margin-bottom: 16px;
         }
+
         .editor-btn {
-            padding: 6px 12px;
-            background: #363431;
-            border: 1px solid #555;
-            color: #fff;
-            font-weight: bold;
+            padding: 8px 12px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
         }
+
         .editor-btn.active-tool {
-            background: #fabd2f;
-            color: #1d2021;
-            border-color: #fff;
+            background: var(--accent-gold);
+            color: #000;
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
         }
+
         .link-row {
             width: 100%;
             text-align: center;
-            background: #1e1c18;
-            padding: 8px;
-            border-radius: 4px;
+            background: rgba(245, 158, 11, 0.1);
+            padding: 12px;
+            border-radius: 8px;
             display: none;
-            color: #ff9f43;
+            color: var(--accent-gold);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            font-weight: 500;
+            word-break: break-all;
         }
-        select, button, input[type="file"] {
-            padding: 8px 12px;
-            background: #363431;
-            color: #fff;
-            border: 1px solid #403e3b;
-            border-radius: 4px;
-            font-size: 0.95em;
+
+        select, button, input[type="file"], input[type="text"], input[type="email"], input[type="password"] {
+            padding: 10px 14px;
+            background: var(--bg-accent);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        select:focus, input:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+        }
+
+        button { 
+            background-color: #4f46e5; 
+            font-weight: 600; 
+            border: none; 
             cursor: pointer;
         }
-        button { background-color: #458588; font-weight: bold; border: none; }
-        button:hover { background-color: #509497; }
-        button.success { background-color: #b8bb26; color: #1d2021; }
-        button.success:hover { background-color: #fabd2f; }
-        button.danger { background-color: #b16286; }
-        button.danger:hover { background-color: #c37399; }
+        button:hover { background-color: #4338ca; transform: translateY(-1px); }
+        button:active { transform: translateY(0); }
+
+        button.success { background-color: var(--primary); color: #fff; }
+        button.success:hover { background-color: var(--primary-hover); }
+        button.danger { background-color: var(--danger); }
+        button.danger:hover { background-color: var(--danger-hover); }
         
         .timer-display {
-            font-family: monospace;
-            font-size: 1.4em;
-            font-weight: bold;
-            background: #1e1c18;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: var(--bg-accent);
             padding: 4px 10px;
-            border-radius: 4px;
-            border: 1px solid #363431;
-            color: #fff;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            letter-spacing: 0.05em;
         }
         .timer-display.active-clock {
-            color: #ff9f43;
-            border-color: #ff9f43;
+            color: var(--accent-gold);
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
         }
 
         .container { 
             display: flex; 
             gap: 20px; 
-            max-width: 950px; 
+            max-width: 1000px; 
             width: 100%; 
-            flex-wrap: wrap;
+            flex-direction: column;
+        }
+
+        @media (min-width: 820px) {
+            .container {
+                flex-direction: row;
+                gap: 28px;
+            }
         }
         
         #board-status {
-            background: #262421;
-            padding: 20px;
-            border-radius: 4px;
-            font-family: monospace;
+            background: var(--bg-panel);
+            padding: 12px;
+            border-radius: 12px;
+            font-family: ui-monospace, monospace;
             white-space: pre-wrap;
-            font-size: 1.3em;
-            letter-spacing: 3px;
-            border: 1px solid #363431;
-            line-height: 1.6;
-            color: #fff;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            border: 1px solid var(--border-color);
+            line-height: 1.3;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            text-align: center;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        @media (min-width: 480px) {
+            #board-status {
+                font-size: 1rem;
+                letter-spacing: 2px;
+                line-height: 1.4;
+                padding: 16px;
+                margin-bottom: 16px;
+            }
         }
         
         .grid-board {
             display: grid;
             grid-template-columns: repeat(8, 1fr);
-            gap: 2px;
-            max-width: 360px;
-            margin-top: 15px;
+            gap: 0px;
+            width: 100%;
+            max-width: 480px;
+            max-height: 75vh;
+            aspect-ratio: 1 / 1;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+            border: 4px solid var(--bg-panel);
+            margin: 0 auto;
         }
+
         .square-btn {
-            aspect-ratio: 1;
+            aspect-ratio: 1 / 1;
             border: none;
-            font-size: 1.1em;
+            font-size: 5.5vw;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 0;
-            font-weight: bold;
+            cursor: pointer;
+            transition: opacity 0.1s;
+            user-select: none;
         }
-        .square-btn.selected { background-color: #458588 !important; color: #fff !important; }
+        @media (min-width: 480px) {
+            .square-btn {
+                font-size: 2.2rem;
+            }
+        }
+        .square-btn:hover {
+            opacity: 0.9;
+        }
+        .square-btn.selected { 
+            background-color: var(--square-select) !important; 
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.3);
+        }
 
         #move-sheet-container {
             flex: 1;
             min-width: 280px;
-            background: #262421;
-            border-radius: 4px;
-            height: 520px;
+            background: var(--bg-panel);
+            border-radius: 12px;
+            height: 350px;
             display: flex;
             flex-direction: column;
-            border: 1px solid #363431;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
         }
+
+        @media (min-width: 820px) {
+            #move-sheet-container {
+                height: 560px;
+            }
+        }
+
         .sheet-header {
-            background: #1e1c18;
-            padding: 10px;
-            font-weight: bold;
-            text-align: center;
-            border-bottom: 1px solid #363431;
-            color: #fff;
+            background: var(--bg-accent);
+            padding: 12px;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-color);
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
             display: flex;
             justify-content: space-around;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
         }
+
+        .share-dropdown-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+        .dropdown-menu-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background-color: var(--bg-panel);
+            min-width: 175px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            z-index: 100;
+            margin-top: 6px;
+            overflow: hidden;
+        }
+        .dropdown-menu-content button {
+            width: 100%;
+            background: none;
+            color: var(--text-main);
+            padding: 10px 14px;
+            text-align: left;
+            border-radius: 0px;
+            font-size: 0.85rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .dropdown-menu-content button:last-child {
+            border-bottom: none;
+        }
+        .dropdown-menu-content button:hover {
+            background-color: var(--bg-accent);
+            color: var(--accent-gold);
+            transform: none;
+        }
+
         .table-scroll {
             flex: 1;
             overflow-y: auto;
-            padding: 5px;
+            padding: 12px;
         }
+
         .move-table {
             width: 100%;
             border-collapse: collapse;
         }
-        .move-table tr:nth-child(even) { background: #1e1c18; }
-        .move-table td { padding: 6px 10px; color: #bababa; }
-        .move-table td.num-col { width: 15%; color: #666; text-align: center; font-weight: bold; }
-        .move-table td.move-col { width: 42.5%; }
-        .move-table .active-move { color: #fff; font-weight: bold; background: #363431; }
-        
-        .input-area { width: 100%; max-width: 360px; margin-top: 15px; }
-        .form-group { display: flex; gap: 10px; }
-        input[type="text"], input[type="password"] {
-            flex: 1;
-            padding: 10px;
-            background-color: #161512;
-            border: 1px solid #363431;
-            color: white;
-            border-radius: 4px;
-            font-size: 1em;
+        .move-table tr {
+            border-bottom: 1px solid rgba(255,255,255,0.03);
         }
+        .move-table tr:nth-child(even) { background: rgba(255,255,255,0.01); }
+        .move-table td { padding: 10px 12px; color: var(--text-muted); font-size: 0.95rem; }
+        .move-table td.turn-row { width: 100%; font-family: ui-monospace, monospace; }
+        .move-table .active-move-span { color: var(--accent-gold); font-weight: 600; background: rgba(245, 158, 11, 0.1); padding: 2px 4px; border-radius: 4px; }
+        
+        .input-area { width: 100%; max-width: 480px; margin: 16px auto 0 auto; }
+        .form-group { display: flex; gap: 12px; }
+        .form-group input[type="text"] { flex: 1; background-color: var(--bg-panel); min-width: 0; }
+
         .visually-hidden {
             position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); border: 0;
         }
 
-        /* Enhanced Editor Layout Styles */
         .editor-options-row {
             display: flex;
-            gap: 20px;
+            gap: 16px;
             align-items: center;
             justify-content: center;
             flex-wrap: wrap;
-            margin-bottom: 15px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid #363431;
+            margin-bottom: 16px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
             width: 100%;
         }
         .editor-text-input-container {
@@ -218,157 +429,249 @@
             max-width: 650px;
             display: none;
             flex-direction: column;
-            gap: 5px;
-            margin-bottom: 15px;
+            gap: 6px;
+            margin-bottom: 16px;
         }
-        .editor-text-input-container label {
-            font-size: 0.9em;
-            color: #fabd2f;
+        .editor-text-input-container label { font-size: 0.9rem; color: var(--accent-gold); }
+        .input-error { border-color: var(--danger) !important; box-shadow: 0 0 5px rgba(239, 68, 68, 0.5); }
+
+        main {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
         }
-        .input-error {
-            border-color: #b16286 !important;
-            box-shadow: 0 0 5px rgba(177, 98, 134, 0.5);
+
+        #game-workspace-container {
+            display: none;
+            width: 100%;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .auth-toggle-link {
+            color: var(--accent-gold);
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-top: 8px;
+        }
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            width: 100%;
+            justify-content: flex-start;
+            padding: 0 4px;
+        }
+        .checkbox-container input {
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
 
-    <div class="setup-panel">
-        <div class="controls-row">
-            <div>
-                <label for="game-mode">Opponent: </label>
-                <select id="game-mode" onchange="handleGameModeChange()">
-                    <option value="ai">Stockfish Bot AI</option>
-                    <option value="local">Local Player</option>
-                    <option value="online">Online Player (Firebase)</option>
-                </select>
+    <div id="auth-gate" class="auth-gate-wrapper">
+        <div id="auth-panel" class="auth-panel">
+            <div id="sign-in-form">
+                <h3>Sign In to Account</h3>
+                <p style="margin: -5px 0 10px 0; font-size: 0.85rem; color: var(--text-muted);">Provide your registered account email, password, and chosen display alias.</p>
+                <div class="controls-row" style="flex-direction: column; gap: 12px;">
+                    <input type="email" id="email-input" placeholder="Account Email Address" style="width: 100%;">
+                    <input type="password" id="password-input" placeholder="Password" style="width: 100%;">
+                    <input type="text" id="username-input" placeholder="Display Name/Nickname (For Lobby)" style="width: 100%;">
+                    <button class="success" onclick="handleSignIn()" style="width: 100%; padding: 12px;">Sign In to Lobby</button>
+                    <div class="auth-toggle-link" onclick="toggleAuthMode(true)">Don't have an account? Register here</div>
+                </div>
             </div>
-            <div>
-                <label for="player-color">Play As: </label>
-                <select id="player-color" onchange="prepareBoardAndClocks()">
-                    <option value="both">Both (Pass & Play)</option>
-                    <option value="w" selected>White</option>
-                    <option value="b">Black</option>
-                </select>
+
+            <div id="register-form" style="display: none;">
+                <h3>Register New Account</h3>
+                <p style="margin: -5px 0 10px 0; font-size: 0.85rem; color: var(--text-muted);">Create a new platform identity to access live boards and matchmaking rooms.</p>
+                <div class="controls-row" style="flex-direction: column; gap: 12px;">
+                    <input type="email" id="reg-email-input" placeholder="Account Email Address" style="width: 100%;">
+                    <input type="password" id="reg-password-input" placeholder="Password" style="width: 100%;">
+                    <input type="password" id="reg-confirm-password-input" placeholder="Confirm Password" style="width: 100%;">
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="verify-password-checkbox" onchange="togglePasswordVisibility(this)">
+                        <label for="verify-password-checkbox">Show typed password data to verify inputs</label>
+                    </div>
+                    <input type="text" id="reg-username-input" placeholder="Display Name/Nickname (For Lobby)" style="width: 100%;">
+                    <button class="success" onclick="handleRegistration()" style="width: 100%; padding: 12px;">Complete Registration</button>
+                    <div class="auth-toggle-link" onclick="toggleAuthMode(false)">Already have an account? Sign In</div>
+                </div>
             </div>
-            <div>
-                <label for="time-limit">Clock: </label>
-                <select id="time-limit" onchange="prepareBoardAndClocks()">
-                    <option value="0">No Timer</option>
-                    <option value="20">20 Minutes</option>
-                    <option value="50">50 Minutes</option>
-                    <option value="90">90 Minutes</option>
-                </select>
-            </div>
-            <div id="difficulty-wrapper">
-                <label for="ai-level">Bot Level: </label>
-                <select id="ai-level">
-                    <option value="1">1 (Elo 800)</option>
-                    <option value="3" selected>3 (Elo 1200)</option>
-                    <option value="5">5 (Elo 1700)</option>
-                    <option value="8">8 (Elo 2500+)</option>
-                </select>
-            </div>
-            <button class="success" onclick="startGame()">Start Game</button>
-            <button onclick="prepareBoardAndClocks()">Reset</button>
-            <button onclick="toggleScanner()">Scan Screenshot</button>
-            <button onclick="toggleEditor()">Toggle Board Editor</button>
+        </div>
+    </div>
+
+    <div id="game-workspace-container">
+        
+        <div id="lobby-panel" class="lobby-panel">
+            <h3>Online Players Lobby <span id="my-name-display" style="color:var(--accent-gold); font-size:0.85em; margin-left:10px;"></span></h3>
+            <p style="margin: 0 0 12px 0; font-size: 0.9em; color: var(--text-muted);">Click "Challenge" next to an active user to invite them straight to a shared room board match.</p>
+            <ul id="player-list" class="player-list">
+                <li style="color: var(--text-muted); font-style: italic;">No other players online yet...</li>
+            </ul>
         </div>
 
-        <!-- Board Editor Section -->
-        <div id="editor-section" class="editor-panel">
-            <div class="editor-options-row">
+        <div class="setup-panel">
+            <div class="controls-row">
                 <div>
-                    <label for="editor-edit-mode">Input Method: </label>
-                    <select id="editor-edit-mode" onchange="handleEditorInputModeChange()">
-                        <option value="visual" selected>Visual Click Placement</option>
-                        <option value="fen">FEN String Input</option>
-                        <option value="custom">Custom Notation Field</option>
+                    <label for="game-mode">Opponent</label>
+                    <select id="game-mode" onchange="handleGameModeChange()">
+                        <option value="ai">Stockfish Bot AI</option>
+                        <option value="local">Local Player</option>
+                        <option value="online">Online Player (Firebase)</option>
                     </select>
                 </div>
                 <div>
-                    <label for="editor-turn">Side to Move: </label>
-                    <select id="editor-turn" onchange="syncEditorTextFromBoard()">
+                    <label for="player-color">Play As</label>
+                    <select id="player-color" onchange="prepareBoardAndClocks()">
+                        <option value="both">Both (Pass & Play)</option>
                         <option value="w" selected>White</option>
                         <option value="b">Black</option>
                     </select>
                 </div>
-                <button class="success" onclick="saveAndExitEditor()">Save & Exit Editor</button>
-                <button class="danger" onclick="clearEntireBoard()">Clear Entire Board</button>
-            </div>
-
-            <!-- Dynamic Text Input Boxes -->
-            <div id="editor-text-container" class="editor-text-input-container">
-                <label id="editor-string-label" for="editor-string-input">String Input:</label>
-                <input type="text" id="editor-string-input" oninput="handleEditorTextInput(this.value)" placeholder="" autocomplete="off">
-            </div>
-
-            <!-- Visual Pieces Pallete Selection Row -->
-            <div id="editor-palette" class="editor-pieces-row">
-                <button class="editor-btn active-tool" id="tool-p" onclick="selectEditorTool('p', 'w')">white pawn</button>
-                <button class="editor-btn" id="tool-n" onclick="selectEditorTool('n', 'w')">white knight</button>
-                <button class="editor-btn" id="tool-b" onclick="selectEditorTool('b', 'w')">white bishop</button>
-                <button class="editor-btn" id="tool-r" onclick="selectEditorTool('r', 'w')">white rook</button>
-                <button class="editor-btn" id="tool-q" onclick="selectEditorTool('q', 'w')">white queen</button>
-                <button class="editor-btn" id="tool-k" onclick="selectEditorTool('k', 'w')">white king</button>
-                <button class="editor-btn" id="tool-P" onclick="selectEditorTool('p', 'b')">BLACK PAWN</button>
-                <button class="editor-btn" id="tool-N" onclick="selectEditorTool('n', 'b')">BLACK KNIGHT</button>
-                <button class="editor-btn" id="tool-B" onclick="selectEditorTool('b', 'b')">BLACK BISHOP</button>
-                <button class="editor-btn" id="tool-R" onclick="selectEditorTool('r', 'b')">BLACK ROOK</button>
-                <button class="editor-btn" id="tool-Q" onclick="selectEditorTool('q', 'b')">BLACK QUEEN</button>
-                <button class="editor-btn" id="tool-K" onclick="selectEditorTool('k', 'b')">BLACK KING</button>
-                <button class="editor-btn" id="tool-empty" onclick="selectEditorTool('empty', '')">Empty Square (Eraser)</button>
-            </div>
-        </div>
-
-        <div id="scanner-section" class="scanner-panel">
-            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                <input type="password" id="gemini-key" placeholder="Paste free Gemini API Key here...">
-                <input type="file" id="screenshot-file" accept="image/*">
-                <button onclick="processScreenshot()">Load Board State</button>
-            </div>
-        </div>
-
-        <div id="link-sharing-panel" class="link-row">
-            <span id="game-link-text"></span>
-        </div>
-
-        <div class="action-row">
-            <button class="danger" onclick="triggerResign()">Resign</button>
-            <button onclick="triggerDraw()">Offer Draw</button>
-            <button onclick="triggerTakeback()">Take Back</button>
-        </div>
-    </div>
-
-    <div class="container">
-        <main style="flex: 1.2; min-width: 320px;">
-            <div id="board-status" aria-label="Chessboard layout text alignment panel"></div>
-            <div id="accessible-grid" class="grid-board" aria-label="Interactive Board Grid"></div>
-
-            <form id="move-form" class="input-area" onsubmit="handleTextMove(event)">
-                <label for="move-input" class="visually-hidden">Type Move:</label>
-                <div class="form-group">
-                    <input type="text" id="move-input" placeholder="Type move (e.g. e4, Nf3)" autocomplete="off">
-                    <button type="submit">Move</button>
+                <div>
+                    <label for="time-limit">Clock</label>
+                    <select id="time-limit" onchange="prepareBoardAndClocks()">
+                        <option value="0">No Timer</option>
+                        <option value="20">20 Minutes</option>
+                        <option value="50">50 Minutes</option>
+                        <option value="90">90 Minutes</option>
+                    </select>
                 </div>
-            </form>
-        </main>
+                <div id="difficulty-wrapper">
+                    <label for="ai-level">Bot Level</label>
+                    <select id="ai-level">
+                        <option value="1">1 (Elo 800)</option>
+                        <option value="3" selected>3 (Elo 1200)</option>
+                        <option value="5">5 (Elo 1700)</option>
+                        <option value="8">8 (Elo 2500+)</option>
+                    </select>
+                </div>
+                <div class="controls-row" style="gap:8px; margin-top:8px; justify-content: center; width:100%;">
+                    <button class="success" onclick="startGame()">Start Game</button>
+                    <button onclick="prepareBoardAndClocks()">Reset</button>
+                    <button onclick="toggleScanner()">Scan Screenshot</button>
+                    <button onclick="toggleEditor()">Board Editor</button>
+                    <button id="snap-board-btn" style="background-color:#0284c7;" onclick="captureBoardScreenshot()">Snapshot Board Only</button>
+                </div>
+            </div>
 
-        <section id="move-sheet-container" aria-label="Move List Panel">
-            <div class="sheet-header">
-                <div>White Clock: <span id="clock-w" class="timer-display">--:--</span></div>
-                <div>Black Clock: <span id="clock-b" class="timer-display">--:--</span></div>
+            <div id="editor-section" class="editor-panel">
+                <div class="editor-options-row">
+                    <div>
+                        <label for="editor-edit-mode">Input Method</label>
+                        <select id="editor-edit-mode" onchange="handleEditorInputModeChange()">
+                            <option value="visual" selected>Visual Click Placement</option>
+                            <option value="fen">FEN String Input</option>
+                            <option value="custom">Custom Notation Field</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="editor-turn">Side to Move</label>
+                        <select id="editor-turn" onchange="syncEditorTextFromBoard()">
+                            <option value="w" selected>White</option>
+                            <option value="b">Black</option>
+                        </select>
+                    </div>
+                    <button class="success" onclick="saveAndExitEditor()">Save & Exit Editor</button>
+                    <button class="danger" onclick="clearEntireBoard()">Clear Entire Board</button>
+                </div>
+
+                <div id="editor-text-container" class="editor-text-input-container">
+                    <label id="editor-string-label" for="editor-string-input">String Input:</label>
+                    <input type="text" id="editor-string-input" oninput="handleEditorTextInput(this.value)" placeholder="" autocomplete="off">
+                </div>
+
+                <div id="editor-palette" class="editor-pieces-row">
+                    <button class="editor-btn active-tool" id="tool-p" onclick="selectEditorTool('p', 'w')">White Pawn ♙</button>
+                    <button class="editor-btn" id="tool-n" onclick="selectEditorTool('n', 'w')">White Knight ♘</button>
+                    <button class="editor-btn" id="tool-b" onclick="selectEditorTool('b', 'w')">White Bishop ♗</button>
+                    <button class="editor-btn" id="tool-r" onclick="selectEditorTool('r', 'w')">White Rook ♖</button>
+                    <button class="editor-btn" id="tool-q" onclick="selectEditorTool('q', 'w')">White Queen ♕</button>
+                    <button class="editor-btn" id="tool-k" onclick="selectEditorTool('k', 'w')">White King ♔</button>
+                    <button class="editor-btn" id="tool-P" onclick="selectEditorTool('p', 'b')">Black Pawn ♟</button>
+                    <button class="editor-btn" id="tool-N" onclick="selectEditorTool('n', 'b')">Black Knight ♞</button>
+                    <button class="editor-btn" id="tool-B" onclick="selectEditorTool('b', 'b')">Black Bishop ♝</button>
+                    <button class="editor-btn" id="tool-R" onclick="selectEditorTool('r', 'b')">Black Rook ♜</button>
+                    <button class="editor-btn" id="tool-Q" onclick="selectEditorTool('q', 'b')">Black Queen ♛</button>
+                    <button class="editor-btn" id="tool-K" onclick="selectEditorTool('k', 'b')">Black King ♚</button>
+                    <button class="editor-btn" id="tool-empty" onclick="selectEditorTool('empty', '')">Eraser</button>
+                </div>
             </div>
-            <div class="table-scroll">
-                <table class="move-table">
-                    <tbody id="move-history-body"></tbody>
-                </table>
+
+            <div id="scanner-section" class="scanner-panel">
+                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: center;">
+                    <input type="password" id="gemini-key" placeholder="Paste free Gemini API Key here...">
+                    <input type="file" id="screenshot-file" accept="image/*">
+                    <button onclick="processScreenshot()">Load Board State</button>
+                </div>
             </div>
-        </section>
+
+            <div id="link-sharing-panel" class="link-row">
+                <span id="game-link-text"></span>
+            </div>
+
+            <div class="action-row">
+                <button class="danger" onclick="triggerResign()">Resign</button>
+                <button onclick="triggerDraw()">Offer Draw</button>
+                <button onclick="triggerTakeback()">Take Back</button>
+            </div>
+        </div>
+
+        <div class="container">
+            <main>
+                <div id="board-status" aria-label="Chessboard layout text alignment panel"></div>
+                <div id="accessible-grid" class="grid-board" aria-label="Interactive Board Grid"></div>
+
+                <form id="move-form" class="input-area" onsubmit="handleTextMove(event)">
+                    <label for="move-input" class="visually-hidden">Type Move:</label>
+                    <div class="form-group">
+                        <input type="text" id="move-input" placeholder="Type move (e.g. e4, Nf3)" autocomplete="off">
+                        <button type="submit">Move</button>
+                    </div>
+                </form>
+            </main>
+
+            <section id="move-sheet-container" aria-label="Move List Panel">
+                <div class="sheet-header">
+                    <div>White: <span id="clock-w" class="timer-display">--:--</span></div>
+                    <div>Black: <span id="clock-b" class="timer-display">--:--</span></div>
+                    
+                    <div class="share-dropdown-wrapper">
+                        <button id="export-dropdown-toggle" style="background-color:#374151; font-size:0.85rem; padding:6px 12px;" onclick="toggleDataDropdown(event)">Copy Data ▾</button>
+                        <div id="share-export-menu" class="dropdown-menu-content">
+                            <button onclick="copyCurrentMoveList(event)">📋 Copy Move List</button>
+                            <button onclick="copyCurrentFENString(event)">🧩 Copy FEN State</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-scroll">
+                    <table class="move-table">
+                        <tbody id="move-history-body"></tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
     </div>
 
     <script>
-        const firebaseConfig = { databaseURL: "https://accessible-chess-default-rtdb.firebaseio.com" };
+        const firebaseConfig = {
+            apiKey: "AIzaSyAy3LEIjJSlUUXf31fFT4pzIL_IVgrMgLo",
+            authDomain: "accessible-chess.firebaseapp.com",
+            databaseURL: "https://accessible-chess-default-rtdb.firebaseio.com",
+            projectId: "accessible-chess",
+            storageBucket: "accessible-chess.firebasestorage.app",
+            messagingSenderId: "92542969110",
+            appId: "1:92542969110:web:701e3eef326559397d1c37",
+            measurementId: "G-2HDFNWCZ38"
+        };
+        
+        if (firebase.apps.length === 0) firebase.initializeApp(firebaseConfig);
         
         let dbRef = null;
         let gameId = null;
@@ -376,16 +679,59 @@
         let ignoreNextDbUpdate = false;
         let gameActive = false;
         let isEditorMode = false;
+        let currentUser = null;
+        let currentNickname = "";
 
         let game = new Chess();
         let selectedSquare = null;
 
-        // Board Editor Setup state (default: white pawn tool)
         let activeEditorType = 'p'; 
         let activeEditorColor = 'w';
 
         let timers = { w: 0, b: 0 };
         let timerInterval = null;
+
+        // Expanded Opening Matrix featuring London System, Englund Gambit, and Scandinavian Defense setups
+        const BOT_OPENING_BOOK = {
+            // Initial position options
+            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1": [
+                { from: "e2", to: "e4" }, // Target Openings / Lines
+                { from: "d2", to: "d4" }, // Setup for London / Englund
+                { from: "g1", to: "f3" }, 
+                { from: "c2", to: "c4" }  
+            ],
+            // 1. d4 Responses
+            "rnbqkbnr/pppppppp/8/8/3P4/8/PPPPPPPP/RNBQKBNR b KQkq d3 0 1": [
+                { from: "e7", to: "e5" }, // Englund Gambit entry
+                { from: "d7", to: "d5" }, // Standard Response
+                { from: "g8", to: "f6" }  
+            ],
+            // 1. e4 Responses
+            "rnbqkbnr/pppppppp/8/8/4P3/8/PPPPPPPP/RNBQKBNR b KQkq e3 0 1": [
+                { from: "d7", to: "d5" }, // Scandinavian Defense entry
+                { from: "e7", to: "e5" }, 
+                { from: "c7", to: "c5" }  
+            ],
+            // 1. d4 d5 White Continuation
+            "rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPPPPPPP/RNBQKBNR w KQkq d6 0 2": [
+                { from: "c1", to: "f4" }, // Accelerated London System development
+                { from: "c2", to: "c4" }  
+            ],
+            // 1. d4 e5 White Continuation (Englund Accepted)
+            "rnbqkbnr/pppp1ppp/8/4p3/3P4/8/PPPPPPPP/RNBQKBNR w KQkq e6 0 2": [
+                { from: "d4", to: "e5" }
+            ],
+            // 1. d4 e5 2. dxe5 Black Response
+            "rnbqkbnr/pppp1ppp/8/4P3/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 2": [
+                { from: "b8", to: "c6" }, // Pressuring e5
+                { from: "d7", to: "d6" }
+            ],
+            // 1. e4 d5 2. exd5 White Continuation (Scandinavian Accepted)
+            "rnbqkbnr/ppp1pppp/8/3P4/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 2": [
+                { from: "d8", to: "d5" }, // Standard Queen recapture
+                { from: "g8", to: "f6" }  // Modern variation preparation
+            ]
+        };
 
         let audioCtx = null;
         function initAudio() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
@@ -416,6 +762,21 @@
             }
         }
 
+        // Lichess file-to-name speech mappings
+        const FILE_NAMES = {
+            'a': 'Anna', 'b': 'Bella', 'c': 'Cesar', 'd': 'David',
+            'e': 'Eva', 'f': 'Felix', 'g': 'Gustav', 'h': 'Hector'
+        };
+
+        // Helper function to translate squares (like 'a4') into human names (like 'Anna 4')
+        function getSpokenSquare(squareStr) {
+            if (!squareStr || squareStr.length < 2) return squareStr;
+            const fileChar = squareStr[0];
+            const rankChar = squareStr[1];
+            const name = FILE_NAMES[fileChar] || fileChar.toUpperCase();
+            return `${name} ${rankChar}`;
+        }
+
         function speakMove(moveObj) {
             if (!window.speechSynthesis) return;
             const pieceNames = { 'p': 'Pawn', 'n': 'Knight', 'b': 'Bishop', 'r': 'Rook', 'q': 'Queen', 'k': 'King' };
@@ -423,15 +784,18 @@
             const color = moveObj.color === 'w' ? 'White' : 'Black';
             let announcement = "";
 
+            // Convert raw squares to custom spoken coordinates
+            const spokenToSquare = getSpokenSquare(moveObj.to);
+
             if (moveObj.san === 'O-O') {
                 announcement = `${color} castles kingside`;
             } else if (moveObj.san === 'O-O-O') {
                 announcement = `${color} castles queenside`;
             } else {
                 if (moveObj.flags.includes('c') || moveObj.flags.includes('e')) {
-                    announcement = `${color} ${piece} captures on ${moveObj.to}`;
+                    announcement = `${color} ${piece} captures on ${spokenToSquare}`;
                 } else {
-                    announcement = `${color} plays ${piece} to ${moveObj.to}`;
+                    announcement = `${color} plays ${piece} to ${spokenToSquare}`;
                 }
             }
 
@@ -467,23 +831,163 @@
         const urlParams = new URLSearchParams(window.location.search);
         const urlGameId = urlParams.get('gameid');
 
-        if (firebase.apps.length === 0) firebase.initializeApp(firebaseConfig);
+        const symbolMap = {
+            'p': '♙', 'n': '♘', 'b': '♗', 'r': '♖', 'q': '♕', 'k': '♔',
+            'P': '♟', 'N': '♞', 'B': '♝', 'R': '♜', 'Q': '♛', 'K': '♚',
+            '.': ''
+        };
 
-        if (urlGameId) {
-            gameModeSelect.value = 'online';
-            setupOnlineGame(urlGameId);
-        } else {
-            prepareBoardAndClocks();
+        function toggleAuthMode(showRegister) {
+            document.getElementById('sign-in-form').style.display = showRegister ? 'none' : 'block';
+            document.getElementById('register-form').style.display = showRegister ? 'block' : 'none';
+        }
+
+        function togglePasswordVisibility(checkbox) {
+            const passwordField = document.getElementById('reg-password-input');
+            const confirmField = document.getElementById('reg-confirm-password-input');
+            const targetType = checkbox.checked ? 'text' : 'password';
+            passwordField.type = targetType;
+            confirmField.type = targetType;
+        }
+
+        function handleRegistration() {
+            const email = document.getElementById('reg-email-input').value.trim();
+            const password = document.getElementById('reg-password-input').value.trim();
+            const confirmPassword = document.getElementById('reg-confirm-password-input').value.trim();
+            const nickname = document.getElementById('reg-username-input').value.trim();
+
+            if (!email || !password || !confirmPassword || !nickname) {
+                alert("Please fully satisfy all operational parameters across Registration panels.");
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                alert("Password mismatch detected. Please check password inputs carefully.");
+                return;
+            }
+
+            firebase.auth().createUserWithEmailAndPassword(email, password).then(cred => {
+                currentUser = cred.user;
+                currentNickname = nickname;
+                initializeUserSession();
+            }).catch(err => alert("Registration failed: " + err.message));
+        }
+
+        function handleSignIn() {
+            const email = document.getElementById('email-input').value.trim();
+            const password = document.getElementById('password-input').value.trim();
+            const nickname = document.getElementById('username-input').value.trim();
+
+            if (!email || !password || !nickname) { 
+                alert("Please fill out your Email, Password, and Display Name fields."); 
+                return; 
+            }
+            currentNickname = nickname;
+
+            firebase.auth().signInWithEmailAndPassword(email, password).then(cred => {
+                currentUser = cred.user;
+                initializeUserSession();
+            }).catch(err => alert("Authentication failed: " + err.message));
+        }
+
+        function initializeUserSession() {
+            document.getElementById('auth-gate').style.display = 'none';
+            document.getElementById('game-workspace-container').style.display = 'flex';
+            document.getElementById('lobby-panel').style.display = 'block';
+            document.getElementById('my-name-display').textContent = `(Signed in as: ${currentNickname})`;
+            
+            const presenceRef = firebase.database().ref(`online_players/${currentUser.uid}`);
+            presenceRef.set({ name: currentNickname, status: "idle", invite: "" });
+            presenceRef.onDisconnect().remove();
+
+            setupLobbyListener();
+            setupIncomingInviteListener();
+            
+            if (urlGameId) {
+                gameModeSelect.value = 'online';
+                setupOnlineGame(urlGameId);
+            } else {
+                prepareBoardAndClocks();
+            }
+        }
+
+        function setupLobbyListener() {
+            firebase.database().ref('online_players').on('value', (snapshot) => {
+                const players = snapshot.val();
+                const listContainer = document.getElementById('player-list');
+                listContainer.innerHTML = '';
+
+                let count = 0;
+                for (let uid in players) {
+                    if (uid === currentUser.uid) continue; 
+                    count++;
+                    const li = document.createElement('li');
+                    li.className = 'player-item';
+                    li.innerHTML = `
+                        <span>${players[uid].name} (${players[uid].status})</span>
+                        <button class="success" onclick="sendChallenge('${uid}')" ${players[uid].status !== 'idle' ? 'disabled' : ''}>Challenge</button>
+                    `;
+                    listContainer.appendChild(li);
+                }
+                if (count === 0) {
+                    listContainer.innerHTML = '<li style="color: var(--text-muted); font-style: italic;">No other players online yet...</li>';
+                }
+            });
+        }
+
+        function sendChallenge(targetUid) {
+            const newGameId = "match_" + Math.random().toString(36).substring(2, 9);
+            
+            firebase.database().ref('games/' + newGameId).set({
+                fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+                history: [],
+                timeLimit: timeLimitSelect.value
+            }).then(() => {
+                firebase.database().ref(`online_players/${targetUid}/invite`).set({
+                    fromName: currentNickname,
+                    gameId: newGameId
+                });
+                
+                firebase.database().ref(`online_players/${currentUser.uid}/status`).set("playing");
+                gameModeSelect.value = 'online';
+                playerColorSelect.value = 'w'; 
+                setupOnlineGame(newGameId);
+            });
+        }
+
+        function setupIncomingInviteListener() {
+            firebase.database().ref(`online_players/${currentUser.uid}/invite`).on('value', (snapshot) => {
+                const invite = snapshot.val();
+                if (invite && invite.gameId) {
+                    playSound('join');
+                    const accept = confirm(`You have been challenged by ${invite.fromName}! Click OK to join their board instantly.`);
+                    
+                    firebase.database().ref(`online_players/${currentUser.uid}/invite`).remove();
+
+                    if (accept) {
+                        firebase.database().ref(`online_players/${currentUser.uid}/status`).set("playing");
+                        gameModeSelect.value = 'online';
+                        playerColorSelect.value = 'b'; 
+                        setupOnlineGame(invite.gameId);
+                    }
+                }
+            });
         }
 
         function handleGameModeChange() {
             if (gameModeSelect.value === 'online') {
+                if(!currentUser) {
+                    alert("Please sign in at the top account panel first to enable coordinated online matchmaking features.");
+                    gameModeSelect.value = 'local';
+                    return;
+                }
                 setupOnlineGame(null);
             } else {
                 diffWrapper.style.display = gameModeSelect.value === 'ai' ? 'block' : 'none';
                 linkPanel.style.display = 'none';
                 isOnlineGame = false;
                 if(dbRef) dbRef.off();
+                if(currentUser) firebase.database().ref(`online_players/${currentUser.uid}/status`).set("idle");
                 prepareBoardAndClocks();
             }
         }
@@ -495,15 +999,14 @@
 
             if (existingId) {
                 gameId = existingId;
-                playerColorSelect.value = 'b';
-                linkText.textContent = "Connected online. Playing as Black. Press 'Start Game' to activate.";
-                speakText("Connected online. Playing as Black.");
+                linkText.textContent = `Connected to active game room: ${gameId}. Press 'Start Game' to activate match clocks.`;
+                speakText("Connected to active room match.");
                 playSound('join');
             } else {
                 gameId = Math.random().toString(36).substring(2, 9);
                 playerColorSelect.value = 'w';
                 const shareUrl = window.location.origin + window.location.pathname + '?gameid=' + gameId;
-                linkText.textContent = "Match Invite URL: " + shareUrl;
+                linkText.textContent = "Manual Backup Invite Link: " + shareUrl;
             }
 
             dbRef = firebase.database().ref('games/' + gameId);
@@ -538,7 +1041,6 @@
             scanner.style.display = scanner.style.display === 'block' ? 'none' : 'block';
         }
 
-        // Toggle Board Editor Panel
         function toggleEditor() {
             const editorPanel = document.getElementById('editor-section');
             if (editorPanel.style.display === 'block') {
@@ -548,18 +1050,13 @@
                 gameActive = false;
                 clearInterval(timerInterval);
                 editorPanel.style.display = 'block';
-                
-                // Initialize side to move select to match current position turn
                 document.getElementById('editor-turn').value = game.turn();
-                
-                // Trigger view default update configuration
                 handleEditorInputModeChange();
-                speakText("Board editor open. Choose your preferred input method from the dropdown menu.");
+                speakText("Board editor open.");
                 renderBoard();
             }
         }
 
-        // Handles switching between Visual, FEN, and Custom string inputs
         function handleEditorInputModeChange() {
             const mode = document.getElementById('editor-edit-mode').value;
             const textContainer = document.getElementById('editor-text-container');
@@ -572,7 +1069,6 @@
             if (mode === 'visual') {
                 textContainer.style.display = 'none';
                 palette.style.display = 'flex';
-                speakText("Visual click placement active. Select pieces below then click board tiles.");
             } else {
                 palette.style.display = 'none';
                 textContainer.style.display = 'flex';
@@ -580,33 +1076,25 @@
                 if (mode === 'fen') {
                     stringLabel.textContent = "Standard FEN String Input:";
                     stringInput.placeholder = "e.g. rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-                    speakText("FEN string entry active.");
                 } else if (mode === 'custom') {
-                    stringLabel.textContent = "Custom Notation Layout String (64 chars, . for empty, white lowercase, black uppercase):";
+                    stringLabel.textContent = "Custom Notation Layout String (64 chars):";
                     stringInput.placeholder = "rnbqkbnrpppppppp................................PPPPPPPPRNBQKBNR";
-                    speakText("Custom notation string entry active.");
                 }
                 syncEditorTextFromBoard();
             }
         }
 
-        // Serializes board matrix state out to string textboxes
         function syncEditorTextFromBoard() {
             const mode = document.getElementById('editor-edit-mode').value;
             const stringInput = document.getElementById('editor-string-input');
             if (mode === 'visual') return;
 
             if (mode === 'fen') {
-                // Ensure the side-to-move selector tokens match fen construction arrays accurately
                 let currentFen = game.fen();
                 let tokens = currentFen.split(' ');
                 tokens[1] = document.getElementById('editor-turn').value;
                 let adjustedFen = tokens.join(' ');
-                
-                // If legal, assign back into engine state to maintain alignment properties
-                if(game.validate_fen(adjustedFen).valid) {
-                    game.load(adjustedFen);
-                }
+                if(game.validate_fen(adjustedFen).valid) game.load(adjustedFen);
                 stringInput.value = game.fen();
             } else if (mode === 'custom') {
                 let customStr = "";
@@ -614,18 +1102,13 @@
                 for (let r = 0; r < 8; r++) {
                     for (let f = 0; f < 8; f++) {
                         const pieceObj = rawBoard[r][f];
-                        if (!pieceObj) {
-                            customStr += ".";
-                        } else {
-                            customStr += pieceObj.color === 'w' ? pieceObj.type : pieceObj.type.toUpperCase();
-                        }
+                        customStr += !pieceObj ? "." : (pieceObj.color === 'w' ? pieceObj.type : pieceObj.type.toUpperCase());
                     }
                 }
                 stringInput.value = customStr;
             }
         }
 
-        // Processes real-time string typing changes securely
         function handleEditorTextInput(val) {
             const mode = document.getElementById('editor-edit-mode').value;
             const stringInput = document.getElementById('editor-string-input');
@@ -637,109 +1120,64 @@
                     game.load(val.trim());
                     document.getElementById('editor-turn').value = game.turn();
                     renderBoard();
-                } else {
-                    stringInput.classList.add('input-error');
-                }
+                } else { stringInput.classList.add('input-error'); }
             } else if (mode === 'custom') {
                 let cleanVal = val.replace(/\s/g, '');
                 if (cleanVal.length === 64 && /^[prnbqkPRNBQK.]+$/.test(cleanVal)) {
                     stringInput.classList.remove('input-error');
-                    
-                    // Rebuild a transient working fen out from your custom 64-character map sequence
                     let fenRows = [];
                     for (let r = 0; r < 8; r++) {
                         let rowStr = cleanVal.substring(r * 8, (r * 8) + 8);
-                        let fenRow = "";
-                        let emptyCount = 0;
-                        
+                        let fenRow = ""; let emptyCount = 0;
                         for (let c = 0; c < 8; c++) {
                             let char = rowStr[c];
-                            if (char === '.') {
-                                emptyCount++;
-                            } else {
+                            if (char === '.') { emptyCount++; } 
+                            else {
                                 if (emptyCount > 0) { fenRow += emptyCount; emptyCount = 0; }
-                                // Convert uppercase back into native black flags for classic fen engines
-                                let isBlack = (char === char.toUpperCase());
-                                fenRow += isBlack ? char.toLowerCase() : char.toUpperCase();
+                                fenRow += (char === char.toUpperCase()) ? char.toLowerCase() : char.toUpperCase();
                             }
                         }
                         if (emptyCount > 0) fenRow += emptyCount;
                         fenRows.push(fenRow);
                     }
-                    
                     let turn = document.getElementById('editor-turn').value;
                     let syntheticFen = fenRows.join('/') + ` ${turn} KQkq - 0 1`;
-                    
-                    if (game.validate_fen(syntheticFen).valid) {
-                        game.load(syntheticFen);
-                        renderBoard();
-                    } else {
-                        stringInput.classList.add('input-error');
-                    }
-                } else {
-                    stringInput.classList.add('input-error');
-                }
+                    if (game.validate_fen(syntheticFen).valid) { game.load(syntheticFen); renderBoard(); } 
+                    else { stringInput.classList.add('input-error'); }
+                } else { stringInput.classList.add('input-error'); }
             }
         }
 
         function selectEditorTool(type, color) {
-            activeEditorType = type;
-            activeEditorColor = color;
-            
-            // Manage focus styles
+            activeEditorType = type; activeEditorColor = color;
             document.querySelectorAll('.editor-btn').forEach(btn => btn.classList.remove('active-tool'));
-            if (type === 'empty') {
-                document.getElementById('tool-empty').classList.add('active-tool');
-                speakText("Eraser tool selected.");
-            } else {
-                const elementId = 'tool-' + (color === 'w' ? type : type.toUpperCase());
-                document.getElementById(elementId).classList.add('active-tool');
-                const pieceNames = { 'p': 'Pawn', 'n': 'Knight', 'b': 'Bishop', 'r': 'Rook', 'q': 'Queen', 'k': 'King' };
-                speakText(`${color === 'w' ? 'White' : 'Black'} ${pieceNames[type]} selected.`);
-            }
+            if (type === 'empty') { document.getElementById('tool-empty').classList.add('active-tool'); } 
+            else { document.getElementById('tool-' + (color === 'w' ? type : type.toUpperCase())).classList.add('active-tool'); }
         }
 
-        function clearEntireBoard() {
-            game.clear();
-            speakText("Entire board cleared.");
-            syncEditorTextFromBoard();
-            renderBoard();
-        }
+        function clearEntireBoard() { game.clear(); syncEditorTextFromBoard(); renderBoard(); }
 
         function saveAndExitEditor() {
             const turn = document.getElementById('editor-turn').value;
-            
-            // Build temporary fen adjustments for turn assignment
             let tokens = game.fen().split(' ');
-            tokens[1] = turn; 
-            tokens[2] = 'KQkq'; // Reset baseline castling rights for absolute safety
-            tokens[3] = '-';    // Clear en passant layout arrays
-            
+            tokens[1] = turn; tokens[2] = 'KQkq'; tokens[3] = '-';
             let finalFen = tokens.join(' ');
             
             if (game.validate_fen(finalFen).valid) {
                 game.load(finalFen);
                 isEditorMode = false;
                 document.getElementById('editor-section').style.display = 'none';
-                speakText(`Board layout saved. Ready to play. ${turn === 'w' ? 'White' : 'Black'} to move.`);
                 renderBoard();
                 if (isOnlineGame) dbRef.update({ fen: game.fen(), history: [] });
-            } else {
-                speakText("Invalid configuration array. Ensure both kings exist on the board grid safely.");
-                alert("The built positioning is illegal in classic chess setup. Add both kings.");
-            }
+            } else { alert("The built positioning is illegal. Add both kings."); }
         }
 
         async function processScreenshot() {
             const apiKey = document.getElementById('gemini-key').value.trim();
             const fileInput = document.getElementById('screenshot-file');
-            if (!apiKey || !fileInput.files[0]) {
-                alert("Please add both your API key and a screenshot file.");
-                return;
-            }
+            if (!apiKey || !fileInput.files[0]) { alert("Please add both your API key and a screenshot file."); return; }
 
-            const file = fileInput.files[0];
-            const reader = new FileReader();
+            const file = fileInput.files[0]; const reader = new FileReader();
             reader.onloadend = async () => {
                 const base64Data = reader.result.split(',')[1];
                 try {
@@ -757,20 +1195,12 @@
                     });
                     const resData = await response.json();
                     let extractedFen = resData.candidates[0].content.parts[0].text.trim();
-                    
                     if (game.validate_fen(extractedFen).valid) {
-                        game.load(extractedFen);
-                        renderBoard();
-                        updateMoveSheet();
-                        speakText("Board state loaded from screenshot. You can toggle the board editor to make fine corrections.");
+                        game.load(extractedFen); renderBoard(); updateMoveSheet();
                         if (isOnlineGame) dbRef.update({ fen: game.fen(), history: game.history() });
                         toggleScanner();
-                    } else {
-                        alert("Could not cleanly build legal layout array from text: " + extractedFen);
-                    }
-                } catch (e) {
-                    alert("Error scanning image via API configuration setup.");
-                }
+                    } else { alert("Could not parse legal layout: " + extractedFen); }
+                } catch (e) { alert("Error scanning image via API configuration setup."); }
             };
             reader.readAsDataURL(file);
         }
@@ -778,10 +1208,8 @@
         function resetClocks() {
             clearInterval(timerInterval);
             const mins = parseInt(timeLimitSelect.value);
-            if (mins > 0) {
-                timers.w = mins * 60; timers.b = mins * 60;
-                updateClockDisplay();
-            } else {
+            if (mins > 0) { timers.w = mins * 60; timers.b = mins * 60; updateClockDisplay(); } 
+            else {
                 document.getElementById('clock-w').textContent = '--:--';
                 document.getElementById('clock-b').textContent = '--:--';
             }
@@ -796,13 +1224,9 @@
 
             timerInterval = setInterval(() => {
                 const activeTurn = game.turn();
-                timers[activeTurn]--;
-                updateClockDisplay();
-
+                timers[activeTurn]--; updateClockDisplay();
                 if (timers[activeTurn] <= 0) {
-                    clearInterval(timerInterval);
-                    playSound('gameover');
-                    speakText("Time out. Game over.");
+                    clearInterval(timerInterval); playSound('gameover');
                     alert(`Time out! ${activeTurn === 'w' ? 'Black' : 'White'} wins.`);
                 }
             }, 1000);
@@ -821,15 +1245,15 @@
             let displayString = "  a b c d e f g h\n";
             accessibleGrid.innerHTML = '';
 
+            const rootStyles = getComputedStyle(document.documentElement);
+            const lightColor = rootStyles.getPropertyValue('--square-light').trim();
+            const darkColor = rootStyles.getPropertyValue('--square-dark').trim();
+
             for (let r = 0; r < 8; r++) {
                 let rowLabel = (8 - r); displayString += rowLabel + " ";
                 for (let f = 0; f < 8; f++) {
                     const pieceObj = rawBoard[r][f];
-                    let char = '.';
-                    if (pieceObj) {
-                        // User Preference mapping: UpperCase = Black, LowerCase = White
-                        char = pieceObj.color === 'w' ? pieceObj.type : pieceObj.type.toUpperCase();
-                    }
+                    let char = !pieceObj ? "." : (pieceObj.color === 'w' ? pieceObj.type : pieceObj.type.toUpperCase());
                     displayString += char + " ";
 
                     const square = `${['a','b','c','d','e','f','g','h'][f]}${rowLabel}`;
@@ -839,11 +1263,19 @@
                     const pieceNames = { 'p': 'Pawn', 'n': 'Knight', 'b': 'Bishop', 'r': 'Rook', 'q': 'Queen', 'k': 'King' };
                     let spokenPiece = pieceObj ? (pieceObj.color === 'w' ? 'White':'Black') + ' ' + pieceNames[pieceObj.type] : 'Empty';
                     btn.setAttribute('aria-label', `${square}: ${spokenPiece}`);
-                    btn.textContent = char;
+                    
+                    btn.textContent = symbolMap[char] || '';
                     
                     if(selectedSquare === square) btn.classList.add('selected');
-                    btn.style.backgroundColor = (r + f) % 2 === 1 ? "#b58863" : "#f0d9b5";
-                    btn.style.color = (r + f) % 2 === 1 ? "#fff" : "#312e2b";
+                    btn.style.backgroundColor = (r + f) % 2 === 1 ? darkColor : lightColor;
+                    
+                    if (pieceObj && pieceObj.color === 'w') {
+                        btn.style.textShadow = "0 0 4px #fff, 0 0 1px #fff";
+                        btn.style.color = "#ffffff";
+                    } else if (pieceObj && pieceObj.color === 'b') {
+                        btn.style.textShadow = "0 0 4px #000";
+                        btn.style.color = "#151515";
+                    }
 
                     btn.onclick = () => { initAudio(); handleSquareClick(square); };
                     accessibleGrid.appendChild(btn);
@@ -854,16 +1286,31 @@
         }
 
         function updateMoveSheet() {
-            moveHistoryBody.innerHTML = ''; const history = game.history();
+            moveHistoryBody.innerHTML = ''; 
+            const history = game.history();
+            
             for (let i = 0; i < history.length; i += 2) {
                 const tr = document.createElement('tr');
-                const tdNum = document.createElement('td'); tdNum.className = 'num-col'; tdNum.textContent = (Math.floor(i / 2) + 1) + '.'; tr.appendChild(tdNum);
+                const tdTurn = document.createElement('td'); 
+                tdTurn.className = 'turn-row';
                 
-                const tdW = document.createElement('td'); tdW.className = 'move-col'; if(i===history.length-1) tdW.classList.add('active-move'); tdW.textContent = history[i]; tr.appendChild(tdW);
-                const tdB = document.createElement('td'); tdB.className = 'move-col'; if(i+1===history.length-1) tdB.classList.add('active-move'); tdB.textContent = history[i+1] || ''; tr.appendChild(tdW); tr.appendChild(tdB);
+                let turnNum = (Math.floor(i / 2) + 1) + '. ';
+                let whiteMove = history[i];
+                let blackMove = history[i+1] || '';
+                
+                if (i === history.length - 1) {
+                    tdTurn.innerHTML = `${turnNum}<span class="active-move-span">${whiteMove}</span>`;
+                } else if (i + 1 === history.length - 1) {
+                    tdTurn.innerHTML = `${turnNum}${whiteMove} <span class="active-move-span">${blackMove}</span>`;
+                } else {
+                    tdTurn.textContent = `${turnNum}${whiteMove} ${blackMove}`.trim();
+                }
+                
+                tr.appendChild(tdTurn);
                 moveHistoryBody.appendChild(tr);
             }
-            const s = document.querySelector('.table-scroll'); s.scrollTop = s.scrollHeight;
+            const s = document.querySelector('.table-scroll'); 
+            s.scrollTop = s.scrollHeight;
         }
 
         function handleTextMove(event) {
@@ -871,41 +1318,62 @@
             if (!gameActive || isEditorMode) return;
             if (isOnlineGame && game.turn() !== playerColorSelect.value) { moveInput.value = ''; return; }
 
-            let rawVal = moveInput.value.trim();
-            moveInput.value = '';
+            let rawVal = moveInput.value.trim(); moveInput.value = '';
             if (!rawVal) return;
 
-            let notation = rawVal;
-            if (/^[A-H][1-8]/i.test(rawVal)) {
-                notation = rawVal.toLowerCase();
-            } else if (/^[NBRQK]/i.test(rawVal)) {
-                if (!/^[A-H]x[A-H][1-8]/i.test(rawVal)) {
-                    notation = rawVal.charAt(0).toUpperCase() + rawVal.slice(1);
-                }
-            } else if (rawVal.toLowerCase() === 'o-o') notation = 'O-O';
-            else if (rawVal.toLowerCase() === 'o-o-o') notation = 'O-O-O';
+            if (rawVal.toLowerCase() === 'o-o') rawVal = 'O-O';
+            if (rawVal.toLowerCase() === 'o-o-o') rawVal = 'O-O-O';
 
-            const move = game.move(notation);
-            if (move) processMoveSuccess(move);
+            const legalMoves = game.moves({ verbose: true });
+            let matchedMove = null;
+
+            matchedMove = legalMoves.find(m => m.san === rawVal);
+
+            if (!matchedMove) {
+                const searchVal = rawVal.toLowerCase().replace('#', '').replace('+', '');
+
+                for (let move of legalMoves) {
+                    let candidates = [];
+
+                    if (move.piece === 'p' && move.flags.includes('c')) {
+                        candidates.push(`${move.from[0]}x${move.to}`);
+                    }
+                    
+                    if (move.piece === 'p' && !move.flags.includes('c')) {
+                        candidates.push(move.to);
+                    }
+
+                    if (move.piece !== 'p') {
+                        let pieceLetter = move.piece.toUpperCase();
+                        if (move.flags.includes('c')) {
+                            candidates.push(`${pieceLetter}x${move.to}`);
+                        } else {
+                            candidates.push(`${pieceLetter}${move.to}`);
+                        }
+                    }
+
+                    if (candidates.some(c => c.toLowerCase() === searchVal)) {
+                        matchedMove = move;
+                        break; 
+                    }
+                }
+            }
+
+            if (matchedMove) {
+                const move = game.move(matchedMove.san);
+                if (move) processMoveSuccess(move);
+            } else {
+                speakText("Invalid move syntax or illegal position attempt.");
+            }
         }
 
         function handleSquareClick(square) {
-            // IF IN BOARD EDITOR MODE
             if (isEditorMode) {
-                const pieceNames = { 'p': 'Pawn', 'n': 'Knight', 'b': 'Bishop', 'r': 'Rook', 'q': 'Queen', 'k': 'King' };
-                if (activeEditorType === 'empty') {
-                    game.remove(square);
-                    speakText(`Cleared ${square}`);
-                } else {
-                    game.put({ type: activeEditorType, color: activeEditorColor }, square);
-                    speakText(`Placed ${activeEditorColor === 'w' ? 'White' : 'Black'} ${pieceNames[activeEditorType]} on ${square}`);
-                }
-                syncEditorTextFromBoard();
-                renderBoard();
-                return;
+                if (activeEditorType === 'empty') { game.remove(square); } 
+                else { game.put({ type: activeEditorType, color: activeEditorColor }, square); }
+                syncEditorTextFromBoard(); renderBoard(); return;
             }
 
-            // REGULAR GAMEPLAY CLICK HANDLING
             if (!gameActive || game.game_over()) return;
             if (isOnlineGame && game.turn() !== playerColorSelect.value) return;
 
@@ -923,8 +1391,7 @@
 
         function processMoveSuccess(move) {
             playSound(move.flags.includes('c') || move.flags.includes('e') ? 'capture' : 'move');
-            speakMove(move);
-            renderBoard(); updateMoveSheet(); manageClockExecution();
+            speakMove(move); renderBoard(); updateMoveSheet(); manageClockExecution();
 
             if (isOnlineGame) {
                 ignoreNextDbUpdate = true;
@@ -943,68 +1410,147 @@
         }
 
         function fetchStockfishMove() {
+            const currentFen = game.fen();
+            
+            if (BOT_OPENING_BOOK[currentFen]) {
+                const options = BOT_OPENING_BOOK[currentFen];
+                const randomChoice = options[Math.floor(Math.random() * options.length)];
+                
+                const move = game.move({ 
+                    from: randomChoice.from, 
+                    to: randomChoice.to, 
+                    promotion: 'q' 
+                });
+                
+                if (move) {
+                    setTimeout(() => {
+                        playSound(move.flags.includes('c') || move.flags.includes('e') ? 'capture' : 'move');
+                        speakMove(move); 
+                        renderBoard(); 
+                        updateMoveSheet(); 
+                        manageClockExecution();
+                    }, 400); 
+                    return;
+                }
+            }
+
             let apiDepth = parseInt(aiLevelSelect.value) * 2;
             if (aiLevelSelect.value === "8") apiDepth = 15; 
-
-            fetch(`https://stockfish.online/api/s/v2.php?fen=${encodeURIComponent(game.fen())}&depth=${apiDepth}`)
+            
+            fetch(`https://stockfish.online/api/s/v2.php?fen=${encodeURIComponent(currentFen)}&depth=${apiDepth}`)
                 .then(res => res.json()).then(data => {
                     if (data && data.success && data.bestmove) {
-                        const parts = data.bestmove.split(' ');
-                        const m = parts[1];
+                        const m = data.bestmove.split(' ')[1];
                         if (m && m.length >= 4) {
-                            const move = game.move({ from: m.substring(0,2), to: m.substring(2,4), promotion: m.length > 4 ? m[4] : undefined });
+                            const move = game.move({ 
+                                from: m.substring(0,2), 
+                                to: m.substring(2,4), 
+                                promotion: m.length > 4 ? m[4] : undefined 
+                            });
                             if (move) {
                                 playSound(move.flags.includes('c') || move.flags.includes('e') ? 'capture' : 'move');
-                                speakMove(move);
-                                renderBoard(); updateMoveSheet(); manageClockExecution();
-                                if (game.game_over()) { playSound('gameover'); }
+                                speakMove(move); renderBoard(); updateMoveSheet(); manageClockExecution();
                             }
                         }
                     }
-                })
-                .catch(err => console.error("Error fetching engine move:", err));
+                }).catch(err => console.error("Error fetching engine move:", err));
         }
 
-        function triggerResign() { playSound('gameover'); speakText("Game ended via resignation."); alert("Game ended via resignation."); prepareBoardAndClocks(); }
-        function triggerDraw() { playSound('gameover'); speakText("Game drawn."); alert("The match has concluded in a draw proposal agreement."); prepareBoardAndClocks(); }
+        function triggerResign() { 
+            playSound('gameover'); alert("Game ended via resignation."); 
+            if(currentUser) firebase.database().ref(`online_players/${currentUser.uid}/status`).set("idle");
+            prepareBoardAndClocks(); 
+        }
+        function triggerDraw() { 
+            playSound('gameover'); alert("The match has concluded in a draw proposal agreement."); 
+            if(currentUser) firebase.database().ref(`online_players/${currentUser.uid}/status`).set("idle");
+            prepareBoardAndClocks(); 
+        }
         function triggerTakeback() {
             if (!gameActive) return;
             game.undo(); if(gameModeSelect.value === 'ai') game.undo(); 
             if (isOnlineGame) dbRef.update({ fen: game.fen(), history: game.history() });
             renderBoard(); updateMoveSheet(); manageClockExecution();
-            speakText("Move taken back.");
         }
 
         function prepareBoardAndClocks() {
             clearInterval(timerInterval);
-            game = new Chess();
-            selectedSquare = null;
-            gameActive = false;
-            isEditorMode = false;
-            resetClocks();
-            renderBoard();
-            updateMoveSheet();
+            game = new Chess(); selectedSquare = null; gameActive = false; isEditorMode = false;
+            resetClocks(); renderBoard(); updateMoveSheet();
             window.history.replaceState({}, document.title, window.location.pathname);
         }
 
         function startGame() {
-            if (isEditorMode) {
-                speakText("Please exit the board editor before starting the match.");
+            if (isEditorMode) return;
+            initAudio(); gameActive = true; manageClockExecution(); speakText("Game started.");
+            if (gameModeSelect.value === 'online') { setupOnlineGame(urlGameId || null); } 
+            else if (gameModeSelect.value === 'ai' && game.turn() === (playerColorSelect.value === 'b' ? 'w' : 'b')) { fetchStockfishMove(); } 
+            else if (gameModeSelect.value === 'ai' && playerColorSelect.value === 'b' && game.turn() === 'w') { fetchStockfishMove(); }
+        }
+        
+        function toggleDataDropdown(e) {
+            e.stopPropagation();
+            const menu = document.getElementById("share-export-menu");
+            menu.style.display = (menu.style.display === "block") ? "none" : "block";
+        }
+
+        document.addEventListener("click", function() {
+            const menu = document.getElementById("share-export-menu");
+            if (menu) menu.style.display = "none";
+        });
+
+        function copyCurrentMoveList(e) {
+            e.stopPropagation();
+            const rawHistory = game.history();
+            if (rawHistory.length === 0) {
+                alert("Move history is empty.");
                 return;
             }
-            initAudio();
-            gameActive = true;
-            manageClockExecution();
-            speakText("Game started.");
-
-            if (gameModeSelect.value === 'online') {
-                setupOnlineGame(urlGameId || null);
-            } else if (gameModeSelect.value === 'ai' && game.turn() === (playerColorSelect.value === 'b' ? 'w' : 'b')) {
-                // If bot is supposed to move first based on custom layout turn
-                fetchStockfishMove();
-            } else if (gameModeSelect.value === 'ai' && playerColorSelect.value === 'b' && game.turn() === 'w') {
-                fetchStockfishMove();
+            
+            let structuredText = "";
+            for (let i = 0; i < rawHistory.length; i += 2) {
+                let moveNumber = Math.floor(i / 2) + 1;
+                structuredText += `${moveNumber}. ${rawHistory[i]} ` + (rawHistory[i+1] ? `${rawHistory[i+1]}` : "") + "\n";
             }
+            
+            navigator.clipboard.writeText(structuredText.trim()).then(() => {
+                alert("Move list notation successfully copied to clipboard!");
+            }).catch(() => {
+                alert("Failed to write to clipboard data.");
+            });
+        }
+
+        function copyCurrentFENString(e) {
+            e.stopPropagation();
+            const currentFen = game.fen();
+            navigator.clipboard.writeText(currentFen).then(() => {
+                alert("FEN state string copied successfully!");
+            }).catch(() => {
+                alert("Clipboard permissions error.");
+            });
+        }
+
+        function captureBoardScreenshot() {
+            const boardElement = document.getElementById("accessible-grid");
+            if (!boardElement) return;
+
+            html2canvas(boardElement, {
+                backgroundColor: "#1a191d", 
+                scale: 2, 
+                logging: false,
+                useCORS: true
+            }).then(canvas => {
+                const imageURI = canvas.toDataURL("image/png");
+                const downloadLink = document.createElement("a");
+                downloadLink.href = imageURI;
+                downloadLink.download = `Chessboard_Snapshot_${Math.floor(Date.now() / 1000)}.png`;
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+            }).catch(err => {
+                console.error("Screenshot capture engine error:", err);
+                alert("Could not process dynamic arrangement image layout.");
+            });
         }
     </script>
 </body>
