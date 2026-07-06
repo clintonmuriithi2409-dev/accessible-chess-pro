@@ -671,7 +671,15 @@
             measurementId: "G-2HDFNWCZ38"
         };
         
-        if (firebase.apps.length === 0) firebase.initializeApp(firebaseConfig);
+        let firebaseInitialized = false;
+        try {
+            if (typeof firebase !== 'undefined' && firebaseConfig) {
+                if (firebase.apps.length === 0) firebase.initializeApp(firebaseConfig);
+                firebaseInitialized = true;
+            }
+        } catch (e) {
+            console.warn("Firebase script initialization skipped. Running in offline fallback layout.");
+        }
         
         let dbRef = null;
         let gameId = null;
@@ -851,6 +859,7 @@
         }
 
         function handleRegistration() {
+            if (!firebaseInitialized) return;
             const email = document.getElementById('reg-email-input').value.trim();
             const password = document.getElementById('reg-password-input').value.trim();
             const confirmPassword = document.getElementById('reg-confirm-password-input').value.trim();
@@ -866,14 +875,20 @@
                 return;
             }
 
-            firebase.auth().createUserWithEmailAndPassword(email, password).then(cred => {
-                currentUser = cred.user;
-                currentNickname = nickname;
-                initializeUserSession();
-            }).catch(err => alert("Registration failed: " + err.message));
+            firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+                .then(() => {
+                    return firebase.auth().createUserWithEmailAndPassword(email, password);
+                })
+                .then(cred => {
+                    currentUser = cred.user;
+                    currentNickname = nickname;
+                    localStorage.setItem('chess_nickname', nickname);
+                    initializeUserSession();
+                }).catch(err => alert("Registration failed: " + err.message));
         }
 
         function handleSignIn() {
+            if (!firebaseInitialized) return;
             const email = document.getElementById('email-input').value.trim();
             const password = document.getElementById('password-input').value.trim();
             const nickname = document.getElementById('username-input').value.trim();
@@ -884,13 +899,19 @@
             }
             currentNickname = nickname;
 
-            firebase.auth().signInWithEmailAndPassword(email, password).then(cred => {
-                currentUser = cred.user;
-                initializeUserSession();
-            }).catch(err => alert("Authentication failed: " + err.message));
+            firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+                .then(() => {
+                    return firebase.auth().signInWithEmailAndPassword(email, password);
+                })
+                .then(cred => {
+                    currentUser = cred.user;
+                    localStorage.setItem('chess_nickname', currentNickname);
+                    initializeUserSession();
+                }).catch(err => alert("Authentication failed: " + err.message));
         }
 
         function initializeUserSession() {
+            if (!firebaseInitialized) return;
             document.getElementById('auth-gate').style.display = 'none';
             document.getElementById('game-workspace-container').style.display = 'flex';
             document.getElementById('lobby-panel').style.display = 'block';
@@ -912,6 +933,7 @@
         }
 
         function setupLobbyListener() {
+            if (!firebaseInitialized) return;
             firebase.database().ref('online_players').on('value', (snapshot) => {
                 const players = snapshot.val();
                 const listContainer = document.getElementById('player-list');
@@ -936,6 +958,7 @@
         }
 
         function sendChallenge(targetUid) {
+            if (!firebaseInitialized) return;
             const newGameId = "match_" + Math.random().toString(36).substring(2, 9);
             
             firebase.database().ref('games/' + newGameId).set({
@@ -956,6 +979,7 @@
         }
 
         function setupIncomingInviteListener() {
+            if (!firebaseInitialized) return;
             firebase.database().ref(`online_players/${currentUser.uid}/invite`).on('value', (snapshot) => {
                 const invite = snapshot.val();
                 if (invite && invite.gameId) {
@@ -976,7 +1000,7 @@
 
         function handleGameModeChange() {
             if (gameModeSelect.value === 'online') {
-                if(!currentUser) {
+                if(!currentUser || !firebaseInitialized) {
                     alert("Please sign in at the top account panel first to enable coordinated online matchmaking features.");
                     gameModeSelect.value = 'local';
                     return;
@@ -987,12 +1011,13 @@
                 linkPanel.style.display = 'none';
                 isOnlineGame = false;
                 if(dbRef) dbRef.off();
-                if(currentUser) firebase.database().ref(`online_players/${currentUser.uid}/status`).set("idle");
+                if(currentUser && firebaseInitialized) firebase.database().ref(`online_players/${currentUser.uid}/status`).set("idle");
                 prepareBoardAndClocks();
             }
         }
 
         function setupOnlineGame(existingId) {
+            if (!firebaseInitialized) return;
             diffWrapper.style.display = 'none';
             linkPanel.style.display = 'block';
             isOnlineGame = true;
@@ -1310,7 +1335,7 @@
                 moveHistoryBody.appendChild(tr);
             }
             const s = document.querySelector('.table-scroll'); 
-            s.scrollTop = s.scrollHeight;
+            if (s) s.scrollTop = s.scrollHeight;
         }
 
         function handleTextMove(event) {
@@ -1393,7 +1418,7 @@
             playSound(move.flags.includes('c') || move.flags.includes('e') ? 'capture' : 'move');
             speakMove(move); renderBoard(); updateMoveSheet(); manageClockExecution();
 
-            if (isOnlineGame) {
+            if (isOnlineGame && firebaseInitialized) {
                 ignoreNextDbUpdate = true;
                 dbRef.update({ fen: game.fen(), history: game.history() });
             }
@@ -1458,18 +1483,18 @@
 
         function triggerResign() { 
             playSound('gameover'); alert("Game ended via resignation."); 
-            if(currentUser) firebase.database().ref(`online_players/${currentUser.uid}/status`).set("idle");
+            if(currentUser && firebaseInitialized) firebase.database().ref(`online_players/${currentUser.uid}/status`).set("idle");
             prepareBoardAndClocks(); 
         }
         function triggerDraw() { 
             playSound('gameover'); alert("The match has concluded in a draw proposal agreement."); 
-            if(currentUser) firebase.database().ref(`online_players/${currentUser.uid}/status`).set("idle");
+            if(currentUser && firebaseInitialized) firebase.database().ref(`online_players/${currentUser.uid}/status`).set("idle");
             prepareBoardAndClocks(); 
         }
         function triggerTakeback() {
             if (!gameActive) return;
             game.undo(); if(gameModeSelect.value === 'ai') game.undo(); 
-            if (isOnlineGame) dbRef.update({ fen: game.fen(), history: game.history() });
+            if (isOnlineGame && firebaseInitialized) dbRef.update({ fen: game.fen(), history: game.history() });
             renderBoard(); updateMoveSheet(); manageClockExecution();
         }
 
@@ -1480,7 +1505,7 @@
             window.history.replaceState({}, document.title, window.location.pathname);
         }
 
-        function startGame() {
+        async function startGame() {
             if (isEditorMode) return;
             initAudio(); gameActive = true; manageClockExecution(); speakText("Game started.");
             if (gameModeSelect.value === 'online') { setupOnlineGame(urlGameId || null); } 
@@ -1551,6 +1576,61 @@
                 console.error("Screenshot capture engine error:", err);
                 alert("Could not process dynamic arrangement image layout.");
             });
+        }
+
+        // PWA Offline Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker running safely.', reg.scope))
+                    .catch(err => console.log('Service Worker entry bypassed:', err));
+            });
+        }
+
+        // Offline Fallback Watchdog Check and Auto-Login
+        window.addEventListener('DOMContentLoaded', () => {
+            if (!navigator.onLine || !firebaseInitialized) {
+                handleOfflineFallback();
+            } else {
+                // Monitor Firebase Auth state for cached tokens
+                firebase.auth().onAuthStateChanged((user) => {
+                    if (user) {
+                        const savedNickname = localStorage.getItem('chess_nickname');
+                        if (savedNickname) {
+                            currentUser = user;
+                            currentNickname = savedNickname;
+                            initializeUserSession();
+                        }
+                    }
+                });
+            }
+            prepareBoardAndClocks();
+        });
+
+        window.addEventListener('offline', handleOfflineFallback);
+
+        function handleOfflineFallback() {
+            console.warn("Running in local offline configuration layout.");
+            const authGate = document.getElementById('auth-gate');
+            const workspace = document.getElementById('game-workspace-container');
+            const lobby = document.getElementById('lobby-panel');
+            const modeSelect = document.getElementById('game-mode');
+
+            if (authGate) authGate.style.display = 'none';
+            if (workspace) workspace.style.display = 'flex';
+            if (lobby) lobby.style.display = 'none';
+
+            if (modeSelect) {
+                for (let i = 0; i < modeSelect.options.length; i++) {
+                    if (modeSelect.options[i].value === 'online') {
+                        modeSelect.remove(i);
+                        break;
+                    }
+                }
+                if (modeSelect.value === 'online') {
+                    modeSelect.value = 'local';
+                }
+            }
         }
     </script>
 </body>
