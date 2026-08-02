@@ -1,19 +1,20 @@
-const CACHE_NAME = 'accessible-chess-v3';
+const CACHE_NAME = 'accessible-chess-v4';
 
 // Static assets to pre-cache on PWA installation
 const PRECACHE_ASSETS = [
   './',
   './index.html',
   'https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
-  'https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700&display=swap'
+  'https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js',
+  'https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js',
+  'https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'
 ];
 
 // Install Event - Pre-cache essential resources cleanly
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      // Promise.allSettled ensures installation succeeds even if a external font fails
       return Promise.allSettled(
         PRECACHE_ASSETS.map((url) =>
           fetch(url, { mode: 'cors' })
