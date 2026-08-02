@@ -1647,7 +1647,31 @@
                             }
                         }
                     }
-                }).catch(err => console.error("Error fetching engine move:", err));
+                }).catch(err => {
+                    console.warn("Stockfish API unreachable offline. Triggering local chess engine move execution.", err);
+                    makeFallbackOfflineMove();
+                });
+        }
+
+        // Offline Fallback AI Move Generator
+        function makeFallbackOfflineMove() {
+            const moves = game.moves({ verbose: true });
+            if (moves.length === 0) return;
+
+            // Prioritize captures offline, otherwise pick a random legal move
+            const captureMoves = moves.filter(m => m.flags.includes('c') || m.flags.includes('e'));
+            const chosenMove = captureMoves.length > 0 
+                ? captureMoves[Math.floor(Math.random() * captureMoves.length)] 
+                : moves[Math.floor(Math.random() * moves.length)];
+
+            const move = game.move(chosenMove);
+            if (move) {
+                playSound(move.flags.includes('c') || move.flags.includes('e') ? 'capture' : 'move');
+                speakMove(move);
+                renderBoard();
+                updateMoveSheet();
+                manageClockExecution();
+            }
         }
 
         function triggerResign() { 
@@ -1747,30 +1771,13 @@
             });
         }
 
-        // Inline Service Worker Blob Registration for Full Offline & App Capabilities
+        // Standard Service Worker Registration for External sw.js File
         if ('serviceWorker' in navigator) {
-            const swCode = `
-                const CACHE_NAME = 'accessible-chess-v1';
-                const ASSETS = [
-                    './',
-                    'https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js',
-                    'https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js',
-                    'https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js',
-                    'https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js',
-                    'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'
-                ];
-                self.addEventListener('install', e => {
-                    e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)));
-                });
-                self.addEventListener('fetch', e => {
-                    e.respondWith(caches.match(e.request).then(res => res || fetch(e.request)));
-                });
-            `;
-            const blob = new Blob([swCode], { type: 'text/javascript' });
-            const swUrl = URL.createObjectURL(blob);
-            navigator.serviceWorker.register(swUrl)
-                .then(reg => console.log('Service Worker running via inline blob cache.'))
-                .catch(err => console.warn('Service worker registration bypassed:', err));
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker registered successfully via sw.js.'))
+                    .catch(err => console.warn('Service worker registration failed:', err));
+            });
         }
 
         // Android Install Prompt Event Handler
