@@ -2,8 +2,35 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Accessible Chess Pro</title>
+
+    <!-- Android Web App Meta Tags & Mobile Enhancements -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#121214">
+    <meta name="description" content="Accessible Chess Pro - Play offline, against AI, or online.">
+
+    <!-- Inline Web App Manifest Data URI for Android Installation -->
+    <link rel="manifest" href='data:application/manifest+json,{
+        "name": "Accessible Chess Pro",
+        "short_name": "ChessPro",
+        "description": "Accessible Chess Pro Game",
+        "start_url": "./",
+        "display": "standalone",
+        "background_color": "#121214",
+        "theme_color": "#121214",
+        "icons": [
+            {
+                "src": "data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\" fill=\"%2310b981\"><text y=\"0.9em\" font-size=\"90\">♚</text></svg>",
+                "sizes": "192x192 512x512",
+                "type": "image/svg+xml",
+                "purpose": "any maskable"
+            }
+        ]
+    }'>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
@@ -38,6 +65,9 @@
             align-items: center;
             min-height: 100vh;
             box-sizing: border-box;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         @media (min-width: 768px) {
@@ -80,7 +110,12 @@
 
         .auth-panel {
             max-width: 420px;
+            text-align: left;
+        }
+
+        .auth-panel h3, .auth-panel p {
             text-align: center;
+            width: 100%;
         }
 
         @media (min-width: 768px) {
@@ -90,7 +125,7 @@
             }
         }
 
-        .lobby-panel { display: none; align-items: flex-start; }
+        .lobby-panel { align-items: flex-start; }
         
         .player-list { width: 100%; list-style: none; padding: 0; margin: 0; }
         .player-item {
@@ -102,6 +137,54 @@
             margin-bottom: 8px;
             border-radius: 8px;
             border: 1px solid var(--border-color);
+        }
+
+        /* --- Tab Navigation Styling --- */
+        .tab-navigation {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+            max-width: 1000px;
+            margin-bottom: 16px;
+            border-bottom: 2px solid var(--border-color);
+            overflow-x: auto;
+            padding-bottom: 2px;
+        }
+
+        .tab-btn {
+            background: var(--bg-accent);
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+            padding: 10px 18px;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-main);
+            background: var(--bg-panel);
+        }
+
+        .tab-btn.active-tab {
+            background: var(--bg-panel);
+            color: var(--accent-gold);
+            border-color: var(--accent-gold) var(--accent-gold) var(--bg-main) var(--accent-gold);
+        }
+
+        .tab-content {
+            display: none;
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        .tab-content.active-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .controls-row {
@@ -131,14 +214,13 @@
         .action-row {
             display: flex;
             gap: 12px;
-            margin-top: 8px;
+            margin-top: 16px;
             width: 100%;
             justify-content: center;
             flex-wrap: wrap;
         }
 
         .scanner-panel, .editor-panel {
-            display: none;
             width: 100%;
             background: var(--bg-accent);
             padding: 16px;
@@ -181,11 +263,12 @@
             background: rgba(245, 158, 11, 0.1);
             padding: 12px;
             border-radius: 8px;
-            display: none;
+            display: block;
             color: var(--accent-gold);
             border: 1px solid rgba(245, 158, 11, 0.3);
             font-weight: 500;
             word-break: break-all;
+            box-sizing: border-box;
         }
 
         select, button, input[type="file"], input[type="text"], input[type="email"], input[type="password"] {
@@ -198,6 +281,8 @@
             outline: none;
             transition: all 0.2s ease;
             box-sizing: border-box;
+            -webkit-user-select: auto;
+            user-select: auto;
         }
 
         select:focus, input:focus {
@@ -304,6 +389,7 @@
             cursor: pointer;
             transition: opacity 0.1s;
             user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
         @media (min-width: 480px) {
             .square-btn {
@@ -455,6 +541,7 @@
             cursor: pointer;
             font-size: 0.9rem;
             margin-top: 8px;
+            text-align: center;
         }
         .checkbox-container {
             display: flex;
@@ -469,37 +556,83 @@
         .checkbox-container input {
             cursor: pointer;
         }
+
+        /* Android PWA Install Banner Banner */
+        #pwa-install-banner {
+            display: none;
+            background: var(--bg-panel);
+            border: 1px solid var(--accent-gold);
+            border-radius: 8px;
+            padding: 10px 16px;
+            margin-bottom: 12px;
+            width: 100%;
+            max-width: 1000px;
+            box-sizing: border-box;
+            justify-content: space-between;
+            align-items: center;
+        }
     </style>
 </head>
 <body>
 
+    <!-- Android PWA Install Prompt Banner -->
+    <div id="pwa-install-banner">
+        <span style="font-size: 0.9rem; color: var(--text-main);">Install <strong>Accessible Chess Pro</strong> as an Android App!</span>
+        <button class="success" id="pwa-install-btn" style="padding: 6px 12px; font-size: 0.85rem;">Install</button>
+    </div>
+
     <div id="auth-gate" class="auth-gate-wrapper">
         <div id="auth-panel" class="auth-panel">
-            <div id="sign-in-form">
+            <div id="sign-in-form" style="width: 100%;">
                 <h3>Sign In to Account</h3>
                 <p style="margin: -5px 0 10px 0; font-size: 0.85rem; color: var(--text-muted);">Provide your registered account email, password, and chosen display alias.</p>
                 <div class="controls-row" style="flex-direction: column; gap: 12px;">
-                    <input type="email" id="email-input" placeholder="Account Email Address" style="width: 100%;">
-                    <input type="password" id="password-input" placeholder="Password" style="width: 100%;">
-                    <input type="text" id="username-input" placeholder="Display Name/Nickname (For Lobby)" style="width: 100%;">
-                    <button class="success" onclick="handleSignIn()" style="width: 100%; padding: 12px;">Sign In to Lobby</button>
+                    <div style="width: 100%;">
+                        <label for="email-input">Email Address</label>
+                        <input type="email" id="email-input" placeholder="Account Email Address" style="width: 100%;">
+                    </div>
+                    <div style="width: 100%;">
+                        <label for="password-input">Password</label>
+                        <input type="password" id="password-input" placeholder="Password" style="width: 100%;">
+                    </div>
+                    <div class="checkbox-container">
+                        <input type="checkbox" id="signin-show-password-checkbox" onchange="toggleSignInPasswordVisibility(this)">
+                        <label for="signin-show-password-checkbox" style="text-transform: none; font-size: 0.85rem; letter-spacing: normal;">Show typed password</label>
+                    </div>
+                    <div style="width: 100%;">
+                        <label for="username-input">Display Name / Nickname</label>
+                        <input type="text" id="username-input" placeholder="Display Name/Nickname (For Lobby)" style="width: 100%;">
+                    </div>
+                    <button class="success" onclick="handleSignIn()" style="width: 100%; padding: 12px; margin-top: 4px;">Sign In to Lobby</button>
                     <div class="auth-toggle-link" onclick="toggleAuthMode(true)">Don't have an account? Register here</div>
                 </div>
             </div>
 
-            <div id="register-form" style="display: none;">
+            <div id="register-form" style="display: none; width: 100%;">
                 <h3>Register New Account</h3>
                 <p style="margin: -5px 0 10px 0; font-size: 0.85rem; color: var(--text-muted);">Create a new platform identity to access live boards and matchmaking rooms.</p>
                 <div class="controls-row" style="flex-direction: column; gap: 12px;">
-                    <input type="email" id="reg-email-input" placeholder="Account Email Address" style="width: 100%;">
-                    <input type="password" id="reg-password-input" placeholder="Password" style="width: 100%;">
-                    <input type="password" id="reg-confirm-password-input" placeholder="Confirm Password" style="width: 100%;">
+                    <div style="width: 100%;">
+                        <label for="reg-email-input">Email Address</label>
+                        <input type="email" id="reg-email-input" placeholder="Account Email Address" style="width: 100%;">
+                    </div>
+                    <div style="width: 100%;">
+                        <label for="reg-password-input">Password</label>
+                        <input type="password" id="reg-password-input" placeholder="Password" style="width: 100%;">
+                    </div>
+                    <div style="width: 100%;">
+                        <label for="reg-confirm-password-input">Confirm Password</label>
+                        <input type="password" id="reg-confirm-password-input" placeholder="Confirm Password" style="width: 100%;">
+                    </div>
                     <div class="checkbox-container">
                         <input type="checkbox" id="verify-password-checkbox" onchange="togglePasswordVisibility(this)">
-                        <label for="verify-password-checkbox">Show typed password data to verify inputs</label>
+                        <label for="verify-password-checkbox" style="text-transform: none; font-size: 0.85rem; letter-spacing: normal;">Show typed password data to verify inputs</label>
                     </div>
-                    <input type="text" id="reg-username-input" placeholder="Display Name/Nickname (For Lobby)" style="width: 100%;">
-                    <button class="success" onclick="handleRegistration()" style="width: 100%; padding: 12px;">Complete Registration</button>
+                    <div style="width: 100%;">
+                        <label for="reg-username-input">Display Name / Nickname</label>
+                        <input type="text" id="reg-username-input" placeholder="Display Name/Nickname (For Lobby)" style="width: 100%;">
+                    </div>
+                    <button class="success" onclick="handleRegistration()" style="width: 100%; padding: 12px; margin-top: 4px;">Complete Registration</button>
                     <div class="auth-toggle-link" onclick="toggleAuthMode(false)">Already have an account? Sign In</div>
                 </div>
             </div>
@@ -508,155 +641,183 @@
 
     <div id="game-workspace-container">
         
-        <div id="lobby-panel" class="lobby-panel">
-            <h3>Online Players Lobby <span id="my-name-display" style="color:var(--accent-gold); font-size:0.85em; margin-left:10px;"></span></h3>
-            <p style="margin: 0 0 12px 0; font-size: 0.9em; color: var(--text-muted);">Click "Challenge" next to an active user to invite them straight to a shared room board match.</p>
-            <ul id="player-list" class="player-list">
-                <li style="color: var(--text-muted); font-style: italic;">No other players online yet...</li>
-            </ul>
+        <!-- Tab Navigation Bar -->
+        <div class="tab-navigation">
+            <button class="tab-btn active-tab" onclick="switchTab('board-tab', this)">🎮 Play & Board</button>
+            <button class="tab-btn" onclick="switchTab('setup-tab', this)">⚙️ Game Setup</button>
+            <button class="tab-btn" id="lobby-tab-btn" onclick="switchTab('lobby-tab', this)">👥 Online Lobby</button>
+            <button class="tab-btn" onclick="switchTab('tools-tab', this)">🛠️ Tools & Editor</button>
         </div>
 
-        <div class="setup-panel">
-            <div class="controls-row">
-                <div>
-                    <label for="game-mode">Opponent</label>
-                    <select id="game-mode" onchange="handleGameModeChange()">
-                        <option value="ai">Stockfish Bot AI</option>
-                        <option value="local">Local Player</option>
-                        <option value="online">Online Player (Firebase)</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="player-color">Play As</label>
-                    <select id="player-color" onchange="prepareBoardAndClocks()">
-                        <option value="both">Both (Pass & Play)</option>
-                        <option value="w" selected>White</option>
-                        <option value="b">Black</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="time-limit">Clock</label>
-                    <select id="time-limit" onchange="prepareBoardAndClocks()">
-                        <option value="0">No Timer</option>
-                        <option value="20">20 Minutes</option>
-                        <option value="50">50 Minutes</option>
-                        <option value="90">90 Minutes</option>
-                    </select>
-                </div>
-                <div id="difficulty-wrapper">
-                    <label for="ai-level">Bot Level</label>
-                    <select id="ai-level">
-                        <option value="1">1 (Elo 800)</option>
-                        <option value="3" selected>3 (Elo 1200)</option>
-                        <option value="5">5 (Elo 1700)</option>
-                        <option value="8">8 (Elo 2500+)</option>
-                    </select>
-                </div>
-                <div class="controls-row" style="gap:8px; margin-top:8px; justify-content: center; width:100%;">
-                    <button class="success" onclick="startGame()">Start Game</button>
-                    <button onclick="prepareBoardAndClocks()">Reset</button>
-                    <button onclick="toggleScanner()">Scan Screenshot</button>
-                    <button onclick="toggleEditor()">Board Editor</button>
-                    <button id="snap-board-btn" style="background-color:#0284c7;" onclick="captureBoardScreenshot()">Snapshot Board Only</button>
-                </div>
-            </div>
+        <!-- TAB 1: Board & Gameplay Display -->
+        <div id="board-tab" class="tab-content active-content">
+            <div class="container">
+                <main>
+                    <div id="board-status" aria-label="Chessboard layout text alignment panel"></div>
+                    <div id="accessible-grid" class="grid-board" aria-label="Interactive Board Grid"></div>
 
-            <div id="editor-section" class="editor-panel">
-                <div class="editor-options-row">
+                    <form id="move-form" class="input-area" onsubmit="handleTextMove(event)">
+                        <label for="move-input" class="visually-hidden">Type Move:</label>
+                        <div class="form-group">
+                            <input type="text" id="move-input" placeholder="Type move (e.g. e4, Nf3)" autocomplete="off">
+                            <button type="submit">Move</button>
+                        </div>
+                    </form>
+
+                    <div class="action-row">
+                        <button class="danger" onclick="triggerResign()">Resign</button>
+                        <button onclick="triggerDraw()">Offer Draw</button>
+                        <button onclick="triggerTakeback()">Take Back</button>
+                    </div>
+                </main>
+
+                <section id="move-sheet-container" aria-label="Move List Panel">
+                    <div class="sheet-header">
+                        <div>White: <span id="clock-w" class="timer-display">--:--</span></div>
+                        <div>Black: <span id="clock-b" class="timer-display">--:--</span></div>
+                        
+                        <div class="share-dropdown-wrapper">
+                            <button id="export-dropdown-toggle" style="background-color:#374151; font-size:0.85rem; padding:6px 12px;" onclick="toggleDataDropdown(event)">Copy Data ▾</button>
+                            <div id="share-export-menu" class="dropdown-menu-content">
+                                <button onclick="copyCurrentMoveList(event)">📋 Copy Move List</button>
+                                <button onclick="copyCurrentFENString(event)">🧩 Copy FEN State</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-scroll">
+                        <table class="move-table">
+                            <tbody id="move-history-body"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- TAB 2: Game Setup Panel -->
+        <div id="setup-tab" class="tab-content">
+            <div class="setup-panel">
+                <h3>Match Setup & Preferences</h3>
+                <div class="controls-row">
                     <div>
-                        <label for="editor-edit-mode">Input Method</label>
-                        <select id="editor-edit-mode" onchange="handleEditorInputModeChange()">
-                            <option value="visual" selected>Visual Click Placement</option>
-                            <option value="fen">FEN String Input</option>
-                            <option value="custom">Custom Notation Field</option>
+                        <label for="game-mode">Opponent</label>
+                        <select id="game-mode" onchange="handleGameModeChange()">
+                            <option value="ai">Stockfish Bot AI</option>
+                            <option value="local">Local Player</option>
+                            <option value="online">Online Player (Firebase)</option>
                         </select>
                     </div>
                     <div>
-                        <label for="editor-turn">Side to Move</label>
-                        <select id="editor-turn" onchange="syncEditorTextFromBoard()">
+                        <label for="player-color">Play As</label>
+                        <select id="player-color" onchange="prepareBoardAndClocks()">
+                            <option value="both">Both (Pass & Play)</option>
                             <option value="w" selected>White</option>
                             <option value="b">Black</option>
                         </select>
                     </div>
-                    <button class="success" onclick="saveAndExitEditor()">Save & Exit Editor</button>
-                    <button class="danger" onclick="clearEntireBoard()">Clear Entire Board</button>
+                    <div>
+                        <label for="time-limit">Clock</label>
+                        <select id="time-limit" onchange="prepareBoardAndClocks()">
+                            <option value="0">No Timer</option>
+                            <option value="20">20 Minutes</option>
+                            <option value="50">50 Minutes</option>
+                            <option value="90">90 Minutes</option>
+                        </select>
+                    </div>
+                    <div id="difficulty-wrapper">
+                        <label for="ai-level">Bot Level</label>
+                        <select id="ai-level">
+                            <option value="1">1 (Elo 800)</option>
+                            <option value="3" selected>3 (Elo 1200)</option>
+                            <option value="5">5 (Elo 1700)</option>
+                            <option value="8">8 (Elo 2500+)</option>
+                        </select>
+                    </div>
                 </div>
-
-                <div id="editor-text-container" class="editor-text-input-container">
-                    <label id="editor-string-label" for="editor-string-input">String Input:</label>
-                    <input type="text" id="editor-string-input" oninput="handleEditorTextInput(this.value)" placeholder="" autocomplete="off">
+                <div class="controls-row" style="gap:12px; margin-top:16px; justify-content: center; width:100%;">
+                    <button class="success" onclick="startGame(); switchTab('board-tab', document.querySelector('.tab-btn'));">Start Game</button>
+                    <button onclick="prepareBoardAndClocks()">Reset Match</button>
                 </div>
-
-                <div id="editor-palette" class="editor-pieces-row">
-                    <button class="editor-btn active-tool" id="tool-p" onclick="selectEditorTool('p', 'w')">White Pawn ♙</button>
-                    <button class="editor-btn" id="tool-n" onclick="selectEditorTool('n', 'w')">White Knight ♘</button>
-                    <button class="editor-btn" id="tool-b" onclick="selectEditorTool('b', 'w')">White Bishop ♗</button>
-                    <button class="editor-btn" id="tool-r" onclick="selectEditorTool('r', 'w')">White Rook ♖</button>
-                    <button class="editor-btn" id="tool-q" onclick="selectEditorTool('q', 'w')">White Queen ♕</button>
-                    <button class="editor-btn" id="tool-k" onclick="selectEditorTool('k', 'w')">White King ♔</button>
-                    <button class="editor-btn" id="tool-P" onclick="selectEditorTool('p', 'b')">Black Pawn ♟</button>
-                    <button class="editor-btn" id="tool-N" onclick="selectEditorTool('n', 'b')">Black Knight ♞</button>
-                    <button class="editor-btn" id="tool-B" onclick="selectEditorTool('b', 'b')">Black Bishop ♝</button>
-                    <button class="editor-btn" id="tool-R" onclick="selectEditorTool('r', 'b')">Black Rook ♜</button>
-                    <button class="editor-btn" id="tool-Q" onclick="selectEditorTool('q', 'b')">Black Queen ♛</button>
-                    <button class="editor-btn" id="tool-K" onclick="selectEditorTool('k', 'b')">Black King ♚</button>
-                    <button class="editor-btn" id="tool-empty" onclick="selectEditorTool('empty', '')">Eraser</button>
-                </div>
-            </div>
-
-            <div id="scanner-section" class="scanner-panel">
-                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: center;">
-                    <input type="password" id="gemini-key" placeholder="Paste free Gemini API Key here...">
-                    <input type="file" id="screenshot-file" accept="image/*">
-                    <button onclick="processScreenshot()">Load Board State</button>
-                </div>
-            </div>
-
-            <div id="link-sharing-panel" class="link-row">
-                <span id="game-link-text"></span>
-            </div>
-
-            <div class="action-row">
-                <button class="danger" onclick="triggerResign()">Resign</button>
-                <button onclick="triggerDraw()">Offer Draw</button>
-                <button onclick="triggerTakeback()">Take Back</button>
             </div>
         </div>
 
-        <div class="container">
-            <main>
-                <div id="board-status" aria-label="Chessboard layout text alignment panel"></div>
-                <div id="accessible-grid" class="grid-board" aria-label="Interactive Board Grid"></div>
+        <!-- TAB 3: Lobby Panel -->
+        <div id="lobby-tab" class="tab-content">
+            <div id="lobby-panel" class="lobby-panel">
+                <h3>Online Players Lobby <span id="my-name-display" style="color:var(--accent-gold); font-size:0.85em; margin-left:10px;"></span></h3>
+                <p style="margin: 0 0 12px 0; font-size: 0.9em; color: var(--text-muted);">Click "Challenge" next to an active user to invite them straight to a shared room board match.</p>
+                <ul id="player-list" class="player-list">
+                    <li style="color: var(--text-muted); font-style: italic;">No other players online yet...</li>
+                </ul>
+            </div>
+        </div>
 
-                <form id="move-form" class="input-area" onsubmit="handleTextMove(event)">
-                    <label for="move-input" class="visually-hidden">Type Move:</label>
-                    <div class="form-group">
-                        <input type="text" id="move-input" placeholder="Type move (e.g. e4, Nf3)" autocomplete="off">
-                        <button type="submit">Move</button>
-                    </div>
-                </form>
-            </main>
+        <!-- TAB 4: Tools & Board Editor -->
+        <div id="tools-tab" class="tab-content">
+            <div class="setup-panel">
+                <h3>Board Tools & Customization</h3>
+                <div class="controls-row" style="gap:10px; justify-content: center; width:100%;">
+                    <button onclick="toggleScanner()">Scan Screenshot</button>
+                    <button onclick="toggleEditor()">Board Editor</button>
+                    <button id="snap-board-btn" style="background-color:#0284c7;" onclick="captureBoardScreenshot()">Snapshot Board Only</button>
+                </div>
 
-            <section id="move-sheet-container" aria-label="Move List Panel">
-                <div class="sheet-header">
-                    <div>White: <span id="clock-w" class="timer-display">--:--</span></div>
-                    <div>Black: <span id="clock-b" class="timer-display">--:--</span></div>
-                    
-                    <div class="share-dropdown-wrapper">
-                        <button id="export-dropdown-toggle" style="background-color:#374151; font-size:0.85rem; padding:6px 12px;" onclick="toggleDataDropdown(event)">Copy Data ▾</button>
-                        <div id="share-export-menu" class="dropdown-menu-content">
-                            <button onclick="copyCurrentMoveList(event)">📋 Copy Move List</button>
-                            <button onclick="copyCurrentFENString(event)">🧩 Copy FEN State</button>
+                <div id="editor-section" class="editor-panel" style="display:none;">
+                    <div class="editor-options-row">
+                        <div>
+                            <label for="editor-edit-mode">Input Method</label>
+                            <select id="editor-edit-mode" onchange="handleEditorInputModeChange()">
+                                <option value="visual" selected>Visual Click Placement</option>
+                                <option value="fen">FEN String Input</option>
+                                <option value="custom">Custom Notation Field</option>
+                            </select>
                         </div>
+                        <div>
+                            <label for="editor-turn">Side to Move</label>
+                            <select id="editor-turn" onchange="syncEditorTextFromBoard()">
+                                <option value="w" selected>White</option>
+                                <option value="b">Black</option>
+                            </select>
+                        </div>
+                        <button class="success" onclick="saveAndExitEditor()">Save & Exit Editor</button>
+                        <button class="danger" onclick="clearEntireBoard()">Clear Entire Board</button>
+                    </div>
+
+                    <div id="editor-text-container" class="editor-text-input-container">
+                        <label id="editor-string-label" for="editor-string-input">String Input:</label>
+                        <input type="text" id="editor-string-input" oninput="handleEditorTextInput(this.value)" placeholder="" autocomplete="off">
+                    </div>
+
+                    <div id="editor-palette" class="editor-pieces-row">
+                        <button class="editor-btn active-tool" id="tool-p" onclick="selectEditorTool('p', 'w')">White Pawn ♙</button>
+                        <button class="editor-btn" id="tool-n" onclick="selectEditorTool('n', 'w')">White Knight ♘</button>
+                        <button class="editor-btn" id="tool-b" onclick="selectEditorTool('b', 'w')">White Bishop ♗</button>
+                        <button class="editor-btn" id="tool-r" onclick="selectEditorTool('r', 'w')">White Rook ♖</button>
+                        <button class="editor-btn" id="tool-q" onclick="selectEditorTool('q', 'w')">White Queen ♕</button>
+                        <button class="editor-btn" id="tool-k" onclick="selectEditorTool('k', 'w')">White King ♔</button>
+                        <button class="editor-btn" id="tool-P" onclick="selectEditorTool('p', 'b')">Black Pawn ♟</button>
+                        <button class="editor-btn" id="tool-N" onclick="selectEditorTool('n', 'b')">Black Knight ♞</button>
+                        <button class="editor-btn" id="tool-B" onclick="selectEditorTool('b', 'b')">Black Bishop ♝</button>
+                        <button class="editor-btn" id="tool-R" onclick="selectEditorTool('r', 'b')">Black Rook ♜</button>
+                        <button class="editor-btn" id="tool-Q" onclick="selectEditorTool('q', 'b')">Black Queen ♛</button>
+                        <button class="editor-btn" id="tool-K" onclick="selectEditorTool('k', 'b')">Black King ♚</button>
+                        <button class="editor-btn" id="tool-empty" onclick="selectEditorTool('empty', '')">Eraser</button>
                     </div>
                 </div>
-                <div class="table-scroll">
-                    <table class="move-table">
-                        <tbody id="move-history-body"></tbody>
-                    </table>
+
+                <div id="scanner-section" class="scanner-panel" style="display:none;">
+                    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; justify-content: center;">
+                        <input type="password" id="gemini-key" placeholder="Paste free Gemini API Key here...">
+                        <input type="file" id="screenshot-file" accept="image/*">
+                        <button onclick="processScreenshot()">Load Board State</button>
+                    </div>
                 </div>
-            </section>
+
+                <div id="link-sharing-panel" class="link-row" style="display:none; margin-top:16px;">
+                    <span id="game-link-text"></span>
+                </div>
+            </div>
         </div>
+
     </div>
 
     <script>
@@ -699,45 +860,48 @@
         let timers = { w: 0, b: 0 };
         let timerInterval = null;
 
+        // Tab Switching Handler
+        function switchTab(tabId, targetBtn) {
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active-content'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active-tab'));
+
+            const activeContent = document.getElementById(tabId);
+            if (activeContent) activeContent.classList.add('active-content');
+            if (targetBtn) targetBtn.classList.add('active-tab');
+        }
+
         // Expanded Opening Matrix featuring London System, Englund Gambit, and Scandinavian Defense setups
         const BOT_OPENING_BOOK = {
-            // Initial position options
             "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1": [
-                { from: "e2", to: "e4" }, // Target Openings / Lines
-                { from: "d2", to: "d4" }, // Setup for London / Englund
+                { from: "e2", to: "e4" },
+                { from: "d2", to: "d4" },
                 { from: "g1", to: "f3" }, 
                 { from: "c2", to: "c4" }  
             ],
-            // 1. d4 Responses
             "rnbqkbnr/pppppppp/8/8/3P4/8/PPPPPPPP/RNBQKBNR b KQkq d3 0 1": [
                 { from: "e7", to: "e5" }, // Englund Gambit entry
-                { from: "d7", to: "d5" }, // Standard Response
+                { from: "d7", to: "d5" },
                 { from: "g8", to: "f6" }  
             ],
-            // 1. e4 Responses
             "rnbqkbnr/pppppppp/8/8/4P3/8/PPPPPPPP/RNBQKBNR b KQkq e3 0 1": [
                 { from: "d7", to: "d5" }, // Scandinavian Defense entry
                 { from: "e7", to: "e5" }, 
                 { from: "c7", to: "c5" }  
             ],
-            // 1. d4 d5 White Continuation
             "rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPPPPPPP/RNBQKBNR w KQkq d6 0 2": [
-                { from: "c1", to: "f4" }, // Accelerated London System development
+                { from: "c1", to: "f4" }, // Accelerated London System
                 { from: "c2", to: "c4" }  
             ],
-            // 1. d4 e5 White Continuation (Englund Accepted)
             "rnbqkbnr/pppp1ppp/8/4p3/3P4/8/PPPPPPPP/RNBQKBNR w KQkq e6 0 2": [
                 { from: "d4", to: "e5" }
             ],
-            // 1. d4 e5 2. dxe5 Black Response
             "rnbqkbnr/pppp1ppp/8/4P3/8/8/PPPPPPPP/RNBQKBNR b KQkq - 0 2": [
-                { from: "b8", to: "c6" }, // Pressuring e5
+                { from: "b8", to: "c6" },
                 { from: "d7", to: "d6" }
             ],
-            // 1. e4 d5 2. exd5 White Continuation (Scandinavian Accepted)
             "rnbqkbnr/ppp1pppp/8/3P4/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 2": [
-                { from: "d8", to: "d5" }, // Standard Queen recapture
-                { from: "g8", to: "f6" }  // Modern variation preparation
+                { from: "d8", to: "d5" }, // Scandinavian Accepted
+                { from: "g8", to: "f6" }  
             ]
         };
 
@@ -770,13 +934,11 @@
             }
         }
 
-        // Lichess file-to-name speech mappings
         const FILE_NAMES = {
             'a': 'Anna', 'b': 'Bella', 'c': 'Cesar', 'd': 'David',
             'e': 'Eva', 'f': 'Felix', 'g': 'Gustav', 'h': 'Hector'
         };
 
-        // Helper function to translate squares (like 'a4') into human names (like 'Anna 4')
         function getSpokenSquare(squareStr) {
             if (!squareStr || squareStr.length < 2) return squareStr;
             const fileChar = squareStr[0];
@@ -792,7 +954,6 @@
             const color = moveObj.color === 'w' ? 'White' : 'Black';
             let announcement = "";
 
-            // Convert raw squares to custom spoken coordinates
             const spokenToSquare = getSpokenSquare(moveObj.to);
 
             if (moveObj.san === 'O-O') {
@@ -858,6 +1019,11 @@
             confirmField.type = targetType;
         }
 
+        function toggleSignInPasswordVisibility(checkbox) {
+            const passwordField = document.getElementById('password-input');
+            passwordField.type = checkbox.checked ? 'text' : 'password';
+        }
+
         function handleRegistration() {
             if (!firebaseInitialized) return;
             const email = document.getElementById('reg-email-input').value.trim();
@@ -914,7 +1080,6 @@
             if (!firebaseInitialized) return;
             document.getElementById('auth-gate').style.display = 'none';
             document.getElementById('game-workspace-container').style.display = 'flex';
-            document.getElementById('lobby-panel').style.display = 'block';
             document.getElementById('my-name-display').textContent = `(Signed in as: ${currentNickname})`;
             
             const presenceRef = firebase.database().ref(`online_players/${currentUser.uid}`);
@@ -927,6 +1092,7 @@
             if (urlGameId) {
                 gameModeSelect.value = 'online';
                 setupOnlineGame(urlGameId);
+                switchTab('board-tab', document.querySelector('.tab-btn'));
             } else {
                 prepareBoardAndClocks();
             }
@@ -975,6 +1141,7 @@
                 gameModeSelect.value = 'online';
                 playerColorSelect.value = 'w'; 
                 setupOnlineGame(newGameId);
+                switchTab('board-tab', document.querySelector('.tab-btn'));
             });
         }
 
@@ -993,6 +1160,7 @@
                         gameModeSelect.value = 'online';
                         playerColorSelect.value = 'b'; 
                         setupOnlineGame(invite.gameId);
+                        switchTab('board-tab', document.querySelector('.tab-btn'));
                     }
                 }
             });
@@ -1224,6 +1392,7 @@
                         game.load(extractedFen); renderBoard(); updateMoveSheet();
                         if (isOnlineGame) dbRef.update({ fen: game.fen(), history: game.history() });
                         toggleScanner();
+                        switchTab('board-tab', document.querySelector('.tab-btn'));
                     } else { alert("Could not parse legal layout: " + extractedFen); }
                 } catch (e) { alert("Error scanning image via API configuration setup."); }
             };
@@ -1578,21 +1747,54 @@
             });
         }
 
-        // PWA Offline Service Worker Registration
+        // Inline Service Worker Blob Registration for Full Offline & App Capabilities
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('Service Worker running safely.', reg.scope))
-                    .catch(err => console.log('Service Worker entry bypassed:', err));
-            });
+            const swCode = `
+                const CACHE_NAME = 'accessible-chess-v1';
+                const ASSETS = [
+                    './',
+                    'https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js',
+                    'https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js',
+                    'https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js',
+                    'https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js',
+                    'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'
+                ];
+                self.addEventListener('install', e => {
+                    e.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)));
+                });
+                self.addEventListener('fetch', e => {
+                    e.respondWith(caches.match(e.request).then(res => res || fetch(e.request)));
+                });
+            `;
+            const blob = new Blob([swCode], { type: 'text/javascript' });
+            const swUrl = URL.createObjectURL(blob);
+            navigator.serviceWorker.register(swUrl)
+                .then(reg => console.log('Service Worker running via inline blob cache.'))
+                .catch(err => console.warn('Service worker registration bypassed:', err));
         }
+
+        // Android Install Prompt Event Handler
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const banner = document.getElementById('pwa-install-banner');
+            const installBtn = document.getElementById('pwa-install-btn');
+            if (banner) banner.style.display = 'flex';
+            if (installBtn) {
+                installBtn.onclick = () => {
+                    banner.style.display = 'none';
+                    deferredPrompt.prompt();
+                    deferredPrompt.userChoice.then(() => { deferredPrompt = null; });
+                };
+            }
+        });
 
         // Offline Fallback Watchdog Check and Auto-Login
         window.addEventListener('DOMContentLoaded', () => {
             if (!navigator.onLine || !firebaseInitialized) {
                 handleOfflineFallback();
             } else {
-                // Monitor Firebase Auth state for cached tokens
                 firebase.auth().onAuthStateChanged((user) => {
                     if (user) {
                         const savedNickname = localStorage.getItem('chess_nickname');
@@ -1613,12 +1815,12 @@
             console.warn("Running in local offline configuration layout.");
             const authGate = document.getElementById('auth-gate');
             const workspace = document.getElementById('game-workspace-container');
-            const lobby = document.getElementById('lobby-panel');
+            const lobbyTabBtn = document.getElementById('lobby-tab-btn');
             const modeSelect = document.getElementById('game-mode');
 
             if (authGate) authGate.style.display = 'none';
             if (workspace) workspace.style.display = 'flex';
-            if (lobby) lobby.style.display = 'none';
+            if (lobbyTabBtn) lobbyTabBtn.style.display = 'none';
 
             if (modeSelect) {
                 for (let i = 0; i < modeSelect.options.length; i++) {
