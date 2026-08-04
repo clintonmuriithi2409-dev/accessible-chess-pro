@@ -1,9 +1,10 @@
-const CACHE_NAME = 'accessible-chess-v4';
+const CACHE_NAME = 'accessible-chess-v5';
 
 // Static assets to pre-cache on PWA installation
 const PRECACHE_ASSETS = [
   './',
   './index.html',
+  './manifest.json',
   'https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js',
   'https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js',
   'https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js',
