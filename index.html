@@ -5,31 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Accessible Chess Pro</title>
 
-    <!-- Android Web App Meta Tags & Mobile Enhancements -->
+    <!-- Android & iOS Standalone Web App Meta Tags -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ChessPro">
     <meta name="theme-color" content="#121214">
     <meta name="description" content="Accessible Chess Pro - Play offline, against AI, or online.">
 
-    <!-- Inline Web App Manifest Data URI for Android Installation -->
-    <link rel="manifest" href='data:application/manifest+json,{
-        "name": "Accessible Chess Pro",
-        "short_name": "ChessPro",
-        "description": "Accessible Chess Pro Game",
-        "start_url": "./",
-        "display": "standalone",
-        "background_color": "#121214",
-        "theme_color": "#121214",
-        "icons": [
-            {
-                "src": "data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\" fill=\"%2310b981\"><text y=\"0.9em\" font-size=\"90\">♚</text></svg>",
-                "sizes": "192x192 512x512",
-                "type": "image/svg+xml",
-                "purpose": "any maskable"
-            }
-        ]
-    }'>
+    <!-- External Web App Manifest Link -->
+    <link rel="manifest" href="manifest.json">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -139,7 +124,6 @@
             border: 1px solid var(--border-color);
         }
 
-        /* --- Tab Navigation Styling --- */
         .tab-navigation {
             display: flex;
             gap: 8px;
@@ -557,7 +541,6 @@
             cursor: pointer;
         }
 
-        /* Android PWA Install Banner Banner */
         #pwa-install-banner {
             display: none;
             background: var(--bg-panel);
@@ -575,9 +558,8 @@
 </head>
 <body>
 
-    <!-- Android PWA Install Prompt Banner -->
     <div id="pwa-install-banner">
-        <span style="font-size: 0.9rem; color: var(--text-main);">Install <strong>Accessible Chess Pro</strong> as an Android App!</span>
+        <span style="font-size: 0.9rem; color: var(--text-main);">Install <strong>Accessible Chess Pro</strong> as an App!</span>
         <button class="success" id="pwa-install-btn" style="padding: 6px 12px; font-size: 0.85rem;">Install</button>
     </div>
 
@@ -640,8 +622,6 @@
     </div>
 
     <div id="game-workspace-container">
-        
-        <!-- Tab Navigation Bar -->
         <div class="tab-navigation">
             <button class="tab-btn active-tab" onclick="switchTab('board-tab', this)">🎮 Play & Board</button>
             <button class="tab-btn" onclick="switchTab('setup-tab', this)">⚙️ Game Setup</button>
@@ -649,7 +629,6 @@
             <button class="tab-btn" onclick="switchTab('tools-tab', this)">🛠️ Tools & Editor</button>
         </div>
 
-        <!-- TAB 1: Board & Gameplay Display -->
         <div id="board-tab" class="tab-content active-content">
             <div class="container">
                 <main>
@@ -693,7 +672,6 @@
             </div>
         </div>
 
-        <!-- TAB 2: Game Setup Panel -->
         <div id="setup-tab" class="tab-content">
             <div class="setup-panel">
                 <h3>Match Setup & Preferences</h3>
@@ -740,7 +718,6 @@
             </div>
         </div>
 
-        <!-- TAB 3: Lobby Panel -->
         <div id="lobby-tab" class="tab-content">
             <div id="lobby-panel" class="lobby-panel">
                 <h3>Online Players Lobby <span id="my-name-display" style="color:var(--accent-gold); font-size:0.85em; margin-left:10px;"></span></h3>
@@ -751,7 +728,6 @@
             </div>
         </div>
 
-        <!-- TAB 4: Tools & Board Editor -->
         <div id="tools-tab" class="tab-content">
             <div class="setup-panel">
                 <h3>Board Tools & Customization</h3>
@@ -817,7 +793,6 @@
                 </div>
             </div>
         </div>
-
     </div>
 
     <script>
@@ -860,7 +835,6 @@
         let timers = { w: 0, b: 0 };
         let timerInterval = null;
 
-        // Tab Switching Handler
         function switchTab(tabId, targetBtn) {
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active-content'));
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active-tab'));
@@ -870,7 +844,6 @@
             if (targetBtn) targetBtn.classList.add('active-tab');
         }
 
-        // Expanded Opening Matrix featuring London System, Englund Gambit, and Scandinavian Defense setups
         const BOT_OPENING_BOOK = {
             "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1": [
                 { from: "e2", to: "e4" },
@@ -879,17 +852,17 @@
                 { from: "c2", to: "c4" }  
             ],
             "rnbqkbnr/pppppppp/8/8/3P4/8/PPPPPPPP/RNBQKBNR b KQkq d3 0 1": [
-                { from: "e7", to: "e5" }, // Englund Gambit entry
+                { from: "e7", to: "e5" },
                 { from: "d7", to: "d5" },
                 { from: "g8", to: "f6" }  
             ],
             "rnbqkbnr/pppppppp/8/8/4P3/8/PPPPPPPP/RNBQKBNR b KQkq e3 0 1": [
-                { from: "d7", to: "d5" }, // Scandinavian Defense entry
+                { from: "d7", to: "d5" },
                 { from: "e7", to: "e5" }, 
                 { from: "c7", to: "c5" }  
             ],
             "rnbqkbnr/ppp1pppp/8/3p4/3P4/8/PPPPPPPP/RNBQKBNR w KQkq d6 0 2": [
-                { from: "c1", to: "f4" }, // Accelerated London System
+                { from: "c1", to: "f4" },
                 { from: "c2", to: "c4" }  
             ],
             "rnbqkbnr/pppp1ppp/8/4p3/3P4/8/PPPPPPPP/RNBQKBNR w KQkq e6 0 2": [
@@ -900,7 +873,7 @@
                 { from: "d7", to: "d6" }
             ],
             "rnbqkbnr/ppp1pppp/8/3P4/8/8/PPPP1PPP/RNBQKBNR b KQkq - 0 2": [
-                { from: "d8", to: "d5" }, // Scandinavian Accepted
+                { from: "d8", to: "d5" },
                 { from: "g8", to: "f6" }  
             ]
         };
@@ -1653,12 +1626,10 @@
                 });
         }
 
-        // Offline Fallback AI Move Generator
         function makeFallbackOfflineMove() {
             const moves = game.moves({ verbose: true });
             if (moves.length === 0) return;
 
-            // Prioritize captures offline, otherwise pick a random legal move
             const captureMoves = moves.filter(m => m.flags.includes('c') || m.flags.includes('e'));
             const chosenMove = captureMoves.length > 0 
                 ? captureMoves[Math.floor(Math.random() * captureMoves.length)] 
@@ -1771,7 +1742,6 @@
             });
         }
 
-        // Standard Service Worker Registration for External sw.js File
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
@@ -1780,7 +1750,6 @@
             });
         }
 
-        // Android Install Prompt Event Handler
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
@@ -1797,7 +1766,6 @@
             }
         });
 
-        // Offline Fallback Watchdog Check and Auto-Login
         window.addEventListener('DOMContentLoaded', () => {
             if (!navigator.onLine || !firebaseInitialized) {
                 handleOfflineFallback();
