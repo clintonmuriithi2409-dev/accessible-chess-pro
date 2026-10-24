@@ -198,7 +198,7 @@
         .action-row {
             display: flex;
             gap: 12px;
-            margin-top: 16px;
+            margin-top: 12px;
             width: 100%;
             justify-content: center;
             flex-wrap: wrap;
@@ -629,6 +629,7 @@
             <button class="tab-btn" onclick="switchTab('tools-tab', this)">🛠️ Tools & Editor</button>
         </div>
 
+        <!-- TAB 1: Board & Gameplay Display -->
         <div id="board-tab" class="tab-content active-content">
             <div class="container">
                 <main>
@@ -643,10 +644,17 @@
                         </div>
                     </form>
 
+                    <!-- Action Buttons directly on Play Screen -->
+                    <div class="action-row">
+                        <button class="success" onclick="startGame()">Start Game</button>
+                        <button onclick="prepareBoardAndClocks()">Reset Match</button>
+                    </div>
+
                     <div class="action-row">
                         <button class="danger" onclick="triggerResign()">Resign</button>
                         <button onclick="triggerDraw()">Offer Draw</button>
                         <button onclick="triggerTakeback()">Take Back</button>
+                        <button id="snap-board-btn" style="background-color:#0284c7;" onclick="captureBoardScreenshot()">📷 Snapshot Board</button>
                     </div>
                 </main>
 
@@ -672,6 +680,7 @@
             </div>
         </div>
 
+        <!-- TAB 2: Game Setup Panel -->
         <div id="setup-tab" class="tab-content">
             <div class="setup-panel">
                 <h3>Match Setup & Preferences</h3>
@@ -712,12 +721,13 @@
                     </div>
                 </div>
                 <div class="controls-row" style="gap:12px; margin-top:16px; justify-content: center; width:100%;">
-                    <button class="success" onclick="startGame(); switchTab('board-tab', document.querySelector('.tab-btn'));">Start Game</button>
+                    <button class="success" onclick="startGame(); switchTab('board-tab', document.querySelectorAll('.tab-btn')[0]);">Start Game</button>
                     <button onclick="prepareBoardAndClocks()">Reset Match</button>
                 </div>
             </div>
         </div>
 
+        <!-- TAB 3: Online Lobby Panel -->
         <div id="lobby-tab" class="tab-content">
             <div id="lobby-panel" class="lobby-panel">
                 <h3>Online Players Lobby <span id="my-name-display" style="color:var(--accent-gold); font-size:0.85em; margin-left:10px;"></span></h3>
@@ -728,13 +738,13 @@
             </div>
         </div>
 
+        <!-- TAB 4: Tools & Board Editor -->
         <div id="tools-tab" class="tab-content">
             <div class="setup-panel">
                 <h3>Board Tools & Customization</h3>
                 <div class="controls-row" style="gap:10px; justify-content: center; width:100%;">
                     <button onclick="toggleScanner()">Scan Screenshot</button>
                     <button onclick="toggleEditor()">Board Editor</button>
-                    <button id="snap-board-btn" style="background-color:#0284c7;" onclick="captureBoardScreenshot()">Snapshot Board Only</button>
                 </div>
 
                 <div id="editor-section" class="editor-panel" style="display:none;">
@@ -748,13 +758,21 @@
                             </select>
                         </div>
                         <div>
-                            <label for="editor-turn">Side to Move</label>
-                            <select id="editor-turn" onchange="syncEditorTextFromBoard()">
-                                <option value="w" selected>White</option>
-                                <option value="b">Black</option>
+                            <label for="editor-turn">Side Next to Move</label>
+                            <select id="editor-turn">
+                                <option value="w" selected>White Moves Next</option>
+                                <option value="b">Black Moves Next</option>
                             </select>
                         </div>
-                        <button class="success" onclick="saveAndExitEditor()">Save & Exit Editor</button>
+                        <div>
+                            <label for="editor-player-side">Your Side Choice</label>
+                            <select id="editor-player-side">
+                                <option value="w" selected>Play as White</option>
+                                <option value="b">Play as Black</option>
+                                <option value="both">Both (Pass & Play)</option>
+                            </select>
+                        </div>
+                        <button class="success" onclick="saveAndExitEditor()">Save & Play Position</button>
                         <button class="danger" onclick="clearEntireBoard()">Clear Entire Board</button>
                     </div>
 
@@ -1065,7 +1083,7 @@
             if (urlGameId) {
                 gameModeSelect.value = 'online';
                 setupOnlineGame(urlGameId);
-                switchTab('board-tab', document.querySelector('.tab-btn'));
+                switchTab('board-tab', document.querySelectorAll('.tab-btn')[0]);
             } else {
                 prepareBoardAndClocks();
             }
@@ -1114,7 +1132,7 @@
                 gameModeSelect.value = 'online';
                 playerColorSelect.value = 'w'; 
                 setupOnlineGame(newGameId);
-                switchTab('board-tab', document.querySelector('.tab-btn'));
+                switchTab('board-tab', document.querySelectorAll('.tab-btn')[0]);
             });
         }
 
@@ -1133,7 +1151,7 @@
                         gameModeSelect.value = 'online';
                         playerColorSelect.value = 'b'; 
                         setupOnlineGame(invite.gameId);
-                        switchTab('board-tab', document.querySelector('.tab-btn'));
+                        switchTab('board-tab', document.querySelectorAll('.tab-btn')[0]);
                     }
                 }
             });
@@ -1217,6 +1235,7 @@
                 clearInterval(timerInterval);
                 editorPanel.style.display = 'block';
                 document.getElementById('editor-turn').value = game.turn();
+                document.getElementById('editor-player-side').value = playerColorSelect.value;
                 handleEditorInputModeChange();
                 speakText("Board editor open.");
                 renderBoard();
@@ -1324,9 +1343,16 @@
         function clearEntireBoard() { game.clear(); syncEditorTextFromBoard(); renderBoard(); }
 
         function saveAndExitEditor() {
-            const turn = document.getElementById('editor-turn').value;
+            const nextTurn = document.getElementById('editor-turn').value;
+            const chosenSide = document.getElementById('editor-player-side').value;
+
+            // Apply selected player side globally
+            playerColorSelect.value = chosenSide;
+
             let tokens = game.fen().split(' ');
-            tokens[1] = turn; tokens[2] = 'KQkq'; tokens[3] = '-';
+            tokens[1] = nextTurn; 
+            tokens[2] = tokens[2] || 'KQkq'; 
+            tokens[3] = tokens[3] || '-';
             let finalFen = tokens.join(' ');
             
             if (game.validate_fen(finalFen).valid) {
@@ -1334,8 +1360,12 @@
                 isEditorMode = false;
                 document.getElementById('editor-section').style.display = 'none';
                 renderBoard();
-                if (isOnlineGame) dbRef.update({ fen: game.fen(), history: [] });
-            } else { alert("The built positioning is illegal. Add both kings."); }
+                if (isOnlineGame && firebaseInitialized) dbRef.update({ fen: game.fen(), history: [] });
+                
+                // Return to play screen and engage game loop
+                switchTab('board-tab', document.querySelectorAll('.tab-btn')[0]);
+                startGame();
+            } else { alert("The built positioning is illegal. Ensure both Kings are present on the board."); }
         }
 
         async function processScreenshot() {
@@ -1363,9 +1393,11 @@
                     let extractedFen = resData.candidates[0].content.parts[0].text.trim();
                     if (game.validate_fen(extractedFen).valid) {
                         game.load(extractedFen); renderBoard(); updateMoveSheet();
-                        if (isOnlineGame) dbRef.update({ fen: game.fen(), history: game.history() });
+                        if (isOnlineGame && firebaseInitialized) dbRef.update({ fen: game.fen(), history: game.history() });
                         toggleScanner();
-                        switchTab('board-tab', document.querySelector('.tab-btn'));
+                        
+                        switchTab('board-tab', document.querySelectorAll('.tab-btn')[0]);
+                        startGame();
                     } else { alert("Could not parse legal layout: " + extractedFen); }
                 } catch (e) { alert("Error scanning image via API configuration setup."); }
             };
@@ -1672,9 +1704,14 @@
         async function startGame() {
             if (isEditorMode) return;
             initAudio(); gameActive = true; manageClockExecution(); speakText("Game started.");
-            if (gameModeSelect.value === 'online') { setupOnlineGame(urlGameId || null); } 
-            else if (gameModeSelect.value === 'ai' && game.turn() === (playerColorSelect.value === 'b' ? 'w' : 'b')) { fetchStockfishMove(); } 
-            else if (gameModeSelect.value === 'ai' && playerColorSelect.value === 'b' && game.turn() === 'w') { fetchStockfishMove(); }
+            if (gameModeSelect.value === 'online') { 
+                setupOnlineGame(urlGameId || null); 
+            } else if (gameModeSelect.value === 'ai') {
+                if ((playerColorSelect.value === 'b' && game.turn() === 'w') || 
+                    (playerColorSelect.value === 'w' && game.turn() === 'b')) {
+                    fetchStockfishMove();
+                }
+            }
         }
         
         function toggleDataDropdown(e) {
