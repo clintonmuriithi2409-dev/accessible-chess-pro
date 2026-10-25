@@ -930,32 +930,67 @@
             'e': 'Eva', 'f': 'Felix', 'g': 'Gustav', 'h': 'Hector'
         };
 
+        function getFileSpokenName(fileChar) {
+            return FILE_NAMES[fileChar] || fileChar.toUpperCase();
+        }
+
         function getSpokenSquare(squareStr) {
             if (!squareStr || squareStr.length < 2) return squareStr;
             const fileChar = squareStr[0];
             const rankChar = squareStr[1];
-            const name = FILE_NAMES[fileChar] || fileChar.toUpperCase();
-            return `${name} ${rankChar}`;
+            return `${getFileSpokenName(fileChar)} ${rankChar}`;
         }
 
         function speakMove(moveObj) {
             if (!window.speechSynthesis) return;
             const pieceNames = { 'p': 'Pawn', 'n': 'Knight', 'b': 'Bishop', 'r': 'Rook', 'q': 'Queen', 'k': 'King' };
-            const piece = pieceNames[moveObj.piece.toLowerCase()] || 'Pawn';
-            const color = moveObj.color === 'w' ? 'White' : 'Black';
+            const pieceType = moveObj.piece.toLowerCase();
+            const pieceName = pieceNames[pieceType] || 'Pawn';
+            const isCapture = moveObj.flags.includes('c') || moveObj.flags.includes('e');
+            const targetSquareSpoken = getSpokenSquare(moveObj.to);
+            const fromSquare = moveObj.from;
+            const fromFile = fromSquare[0];
+            const fromRank = fromSquare[1];
+
             let announcement = "";
 
-            const spokenToSquare = getSpokenSquare(moveObj.to);
-
             if (moveObj.san === 'O-O') {
-                announcement = `${color} castles kingside`;
+                announcement = "Castles kingside";
             } else if (moveObj.san === 'O-O-O') {
-                announcement = `${color} castles queenside`;
+                announcement = "Castles queenside";
             } else {
-                if (moveObj.flags.includes('c') || moveObj.flags.includes('e')) {
-                    announcement = `${color} ${piece} captures on ${spokenToSquare}`;
+                // Parse Lichess-style SAN disambiguation
+                const san = moveObj.san;
+                let disambiguation = "";
+
+                if (pieceType === 'p') {
+                    if (isCapture) {
+                        // Pawn captures: announce starting file (e.g., "Cesar captures David 4")
+                        announcement = `${getFileSpokenName(fromFile)} captures ${targetSquareSpoken}`;
+                    } else {
+                        // Pawn pushes: announce simple square (e.g., "Eva 4")
+                        announcement = targetSquareSpoken;
+                    }
                 } else {
-                    announcement = `${color} plays ${piece} to ${spokenToSquare}`;
+                    // Piece moves: check if ambiguity details exist in SAN string (e.g., Nbd7, N5f3, Raxd1)
+                    // Remove piece letter prefix, target square, capture 'x', check/mate symbols
+                    let sanBody = san.substring(1).replace(/x/, '').replace(moveObj.to, '').replace(/[\+#]/g, '');
+
+                    if (sanBody.length > 0) {
+                        // We have disambiguation info (file, rank, or full square)
+                        if (/[a-h]/.test(sanBody)) {
+                            disambiguation = " " + getFileSpokenName(sanBody.match(/[a-h]/)[0]);
+                        }
+                        if (/[1-8]/.test(sanBody)) {
+                            disambiguation += " " + sanBody.match(/[1-8]/)[0];
+                        }
+                    }
+
+                    if (isCapture) {
+                        announcement = `${pieceName}${disambiguation} captures ${targetSquareSpoken}`;
+                    } else {
+                        announcement = `${pieceName}${disambiguation} to ${targetSquareSpoken}`;
+                    }
                 }
             }
 
